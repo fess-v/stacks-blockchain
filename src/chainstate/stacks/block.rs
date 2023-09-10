@@ -1738,8 +1738,6 @@ mod test {
         let pubk_2 = StacksPublicKey::from_private(&privk_2);
         let pubk_3 = StacksPublicKey::from_private(&privk_3);
 
-
-
         let order_independent_multisig_condition = TransactionSpendingCondition::new_multisig_order_independent_p2wsh(
             2,
             vec![pubk_1.clone(), pubk_2.clone(), pubk_3.clone()],
