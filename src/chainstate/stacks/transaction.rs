@@ -5262,8 +5262,8 @@ mod test {
             let mut tx_signer = StacksTransactionSigner::new(&tx);
 
             let initialSigHash = tx.sign_begin();
-            let mut currSigHash1= initialSigHash;
-            let mut currSigHash2= initialSigHash;
+            let mut currSigHash1 = initialSigHash;
+            let mut currSigHash2 = initialSigHash;
             let mut currSigHash3= initialSigHash;
             match tx.auth {
                 TransactionAuth::Standard(ref origin) => match origin {
@@ -5420,8 +5420,8 @@ mod test {
             origin_tx.set_sponsor_nonce(789).unwrap();
 
             let initialSigHash = tx_signer.sighash;
-            let mut currSigHash1= initialSigHash;
-            let mut currSigHash2= initialSigHash;
+            let mut currSigHash1 = initialSigHash;
+            let mut currSigHash2 = initialSigHash;
             let mut currSigHash3= initialSigHash;
             match origin_tx.auth {
                 TransactionAuth::Sponsored(_, ref sponsored) => match sponsored {
@@ -5566,8 +5566,8 @@ mod test {
             let mut tx_signer = StacksTransactionSigner::new(&tx);
 
             let initialSigHash = tx.sign_begin();
-            let mut currSigHash1= initialSigHash;
-            let mut currSigHash2= initialSigHash;
+            let mut currSigHash1 = initialSigHash;
+            let mut currSigHash2 = initialSigHash;
             let mut currSigHash3= initialSigHash;
             match tx.auth {
                 TransactionAuth::Standard(ref origin) => match origin {
@@ -5724,8 +5724,8 @@ mod test {
             origin_tx.set_sponsor_nonce(789).unwrap();
 
             let initialSigHash = tx_signer.sighash;
-            let mut currSigHash1= initialSigHash;
-            let mut currSigHash2= initialSigHash;
+            let mut currSigHash1 = initialSigHash;
+            let mut currSigHash2 = initialSigHash;
             let mut currSigHash3= initialSigHash;
             match origin_tx.auth {
                 TransactionAuth::Sponsored(_, ref sponsored) => match sponsored {
@@ -5870,8 +5870,8 @@ mod test {
             let mut tx_signer = StacksTransactionSigner::new(&tx);
 
             let initialSigHash = tx.sign_begin();
-            let mut currSigHash1= initialSigHash;
-            let mut currSigHash2= initialSigHash;
+            let mut currSigHash1 = initialSigHash;
+            let mut currSigHash2 = initialSigHash;
             let mut currSigHash3= initialSigHash;
             match tx.auth {
                 TransactionAuth::Standard(ref origin) => match origin {
@@ -6028,8 +6028,8 @@ mod test {
             origin_tx.set_sponsor_nonce(789).unwrap();
 
             let initialSigHash = tx_signer.sighash;
-            let mut currSigHash1= initialSigHash;
-            let mut currSigHash2= initialSigHash;
+            let mut currSigHash1 = initialSigHash;
+            let mut currSigHash2 = initialSigHash;
             let mut currSigHash3= initialSigHash;
             match origin_tx.auth {
                 TransactionAuth::Sponsored(_, ref sponsored) => match sponsored {
@@ -6174,8 +6174,8 @@ mod test {
             let mut tx_signer = StacksTransactionSigner::new(&tx);
 
             let initialSigHash = tx.sign_begin();
-            let mut currSigHash1= initialSigHash;
-            let mut currSigHash2= initialSigHash;
+            let mut currSigHash1 = initialSigHash;
+            let mut currSigHash2 = initialSigHash;
             let mut currSigHash3= initialSigHash;
             match tx.auth {
                 TransactionAuth::Standard(ref origin) => match origin {
@@ -6333,8 +6333,8 @@ mod test {
             origin_tx.set_sponsor_nonce(789).unwrap();
 
             let initialSigHash = tx_signer.sighash;
-            let mut currSigHash1= initialSigHash;
-            let mut currSigHash2= initialSigHash;
+            let mut currSigHash1 = initialSigHash;
+            let mut currSigHash2 = initialSigHash;
             let mut currSigHash3= initialSigHash;
             match origin_tx.auth {
                 TransactionAuth::Sponsored(_, ref sponsored) => match sponsored {
