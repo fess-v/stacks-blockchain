@@ -590,6 +590,27 @@ impl StacksBlock {
                         return false;
                     }
                 }
+                match &tx.auth {
+                    TransactionAuth::Sponsored(ref origin, ref sponsor) => {
+                        match origin {
+                            TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
+                                // not supported
+                                error!("Order independent multisig transactions not supported before Stacks 2.1");
+                                return false;
+                            }
+                            _ => (),
+                        }
+                        match sponsor {
+                            TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
+                                // not supported
+                                error!("Order independent multisig transactions not supported before Stacks 2.1");
+                                return false;
+                            }
+                            _ => (),
+                        }
+                    }
+                    _ => assert!(false),
+                };
             }
         }
         return true;
@@ -1200,7 +1221,7 @@ mod test {
         let privk = StacksPrivateKey::from_hex(
             "6d430bb91222408e7706c9001cfaeb91b08c2be6d5ac95779ab52c6b431950e001",
         )
-        .unwrap();
+            .unwrap();
         let mut mblock_header = StacksMicroblockHeader {
             version: 0x12,
             sequence: 0x34,
@@ -1221,7 +1242,7 @@ mod test {
         let privk = StacksPrivateKey::from_hex(
             "6d430bb91222408e7706c9001cfaeb91b08c2be6d5ac95779ab52c6b431950e0",
         )
-        .unwrap();
+            .unwrap();
         let mut mblock_header = StacksMicroblockHeader {
             version: 0x12,
             sequence: 0x34,
@@ -1269,19 +1290,19 @@ mod test {
             consensus_hash: ConsensusHash::from_bytes(
                 &hex_bytes("0000000000000000000000000000000000000000").unwrap(),
             )
-            .unwrap(),
+                .unwrap(),
             public_key: VRFPublicKey::from_bytes(
                 &hex_bytes("a366b51292bef4edd64063d9145c617fec373bceb0758e98cd72becd84d54c7a")
                     .unwrap(),
             )
-            .unwrap(),
+                .unwrap(),
             memo: vec![01, 02, 03, 04, 05],
 
             txid: Txid::from_bytes_be(
                 &hex_bytes("1bfa831b5fc56c858198acb8e77e5863c1e9d8ac26d49ddb914e24d8d4083562")
                     .unwrap(),
             )
-            .unwrap(),
+                .unwrap(),
             vtxindex: 455,
             block_height: 123,
             burn_header_hash: BurnchainHeaderHash([0xfe; 32]),
@@ -1306,14 +1327,14 @@ mod test {
                 vec![StacksPublicKey::from_hex(
                     "02d8015134d9db8178ac93acbc43170a2f20febba5087a5b0437058765ad5133d0",
                 )
-                .unwrap()],
+                    .unwrap()],
             ),
 
             txid: Txid::from_bytes_be(
                 &hex_bytes("3c07a0a93360bc85047bbaadd49e30c8af770f73a37e10fec400174d2e5f27cf")
                     .unwrap(),
             )
-            .unwrap(),
+                .unwrap(),
             vtxindex: 444,
             block_height: 125,
             burn_parent_modulus: (124 % BURN_BLOCK_MINED_AT_MODULUS) as u8,
@@ -1334,7 +1355,7 @@ mod test {
                 &sortition_chain_tip,
                 &leader_key,
                 &block_commit,
-                &stacks_chain_tip
+                &stacks_chain_tip,
             )
             .unwrap_err()
             .to_string()
@@ -1349,7 +1370,7 @@ mod test {
                 &sortition_chain_tip,
                 &leader_key,
                 &block_commit,
-                &stacks_chain_tip
+                &stacks_chain_tip,
             )
             .unwrap_err()
             .to_string()
@@ -1364,7 +1385,7 @@ mod test {
                 &sortition_chain_tip,
                 &leader_key,
                 &block_commit,
-                &stacks_chain_tip
+                &stacks_chain_tip,
             )
             .unwrap_err()
             .to_string()
@@ -1379,7 +1400,7 @@ mod test {
                 &sortition_chain_tip,
                 &leader_key,
                 &block_commit,
-                &stacks_chain_tip
+                &stacks_chain_tip,
             )
             .unwrap_err()
             .to_string()
@@ -1394,7 +1415,7 @@ mod test {
                 &sortition_chain_tip,
                 &leader_key,
                 &block_commit,
-                &stacks_chain_tip
+                &stacks_chain_tip,
             )
             .unwrap_err()
             .to_string()
@@ -1422,12 +1443,12 @@ mod test {
         let privk = StacksPrivateKey::from_hex(
             "6d430bb91222408e7706c9001cfaeb91b08c2be6d5ac95779ab52c6b431950e001",
         )
-        .unwrap();
+            .unwrap();
         let origin_auth = TransactionAuth::Standard(
             TransactionSpendingCondition::new_singlesig_p2pkh(StacksPublicKey::from_private(
                 &privk,
             ))
-            .unwrap(),
+                .unwrap(),
         );
         let tx_coinbase = StacksTransaction::new(
             TransactionVersion::Testnet,
@@ -1556,12 +1577,12 @@ mod test {
         let privk = StacksPrivateKey::from_hex(
             "6d430bb91222408e7706c9001cfaeb91b08c2be6d5ac95779ab52c6b431950e001",
         )
-        .unwrap();
+            .unwrap();
         let origin_auth = TransactionAuth::Standard(
             TransactionSpendingCondition::new_singlesig_p2pkh(StacksPublicKey::from_private(
                 &privk,
             ))
-            .unwrap(),
+                .unwrap(),
         );
         let tx_coinbase = StacksTransaction::new(
             TransactionVersion::Testnet,
@@ -1684,16 +1705,78 @@ mod test {
             microblock_pubkey_hash: Hash160([9u8; 20]),
         };
 
+        let stx_address = StacksAddress {
+            version: 0,
+            bytes: Hash160([0u8; 20]),
+        };
+
         let privk = StacksPrivateKey::from_hex(
             "6d430bb91222408e7706c9001cfaeb91b08c2be6d5ac95779ab52c6b431950e001",
         )
-        .unwrap();
+            .unwrap();
         let origin_auth = TransactionAuth::Standard(
             TransactionSpendingCondition::new_singlesig_p2pkh(StacksPublicKey::from_private(
                 &privk,
             ))
-            .unwrap(),
+                .unwrap(),
         );
+
+        let privk_1 = StacksPrivateKey::from_hex(
+            "6d430bb91222408e7706c9001cfaeb91b08c2be6d5ac95779ab52c6b431950e001",
+        )
+            .unwrap();
+        let privk_2 = StacksPrivateKey::from_hex(
+            "2a584d899fed1d24e26b524f202763c8ab30260167429f157f1c119f550fa6af01",
+        )
+            .unwrap();
+        let privk_3 = StacksPrivateKey::from_hex(
+            "d5200dee706ee53ae98a03fba6cf4fdcc5084c30cfa9e1b3462dcdeaa3e0f1d201",
+        )
+            .unwrap();
+
+        let pubk_1 = StacksPublicKey::from_private(&privk_1);
+        let pubk_2 = StacksPublicKey::from_private(&privk_2);
+        let pubk_3 = StacksPublicKey::from_private(&privk_3);
+
+
+
+        let order_independent_multisig_condition = TransactionSpendingCondition::new_multisig_order_independent_p2wsh(
+            2,
+            vec![pubk_1.clone(), pubk_2.clone(), pubk_3.clone()],
+        )
+            .unwrap();
+
+        let order_independent_sponsored_auth = TransactionAuth::Sponsored(
+            TransactionSpendingCondition::new_singlesig_p2pkh(StacksPublicKey::from_private(
+                &privk,
+            ))
+                .unwrap(),
+            order_independent_multisig_condition.clone(),
+        );
+        let order_independent_origin_auth = TransactionAuth::Standard(
+            order_independent_multisig_condition.clone(),
+        );
+
+        let order_independent_multisig_tx_transfer_mainnet = StacksTransaction::new(
+            TransactionVersion::Mainnet,
+            order_independent_origin_auth.clone(),
+            TransactionPayload::TokenTransfer(
+                stx_address.into(),
+                123,
+                TokenTransferMemo([1u8; 34]),
+            ),
+        );
+
+        let order_independent_sponsored_multisig_tx_transfer_mainnet = StacksTransaction::new(
+            TransactionVersion::Mainnet,
+            order_independent_sponsored_auth.clone(),
+            TransactionPayload::TokenTransfer(
+                stx_address.into(),
+                123,
+                TokenTransferMemo([1u8; 34]),
+            ),
+        );
+
         let tx_coinbase = StacksTransaction::new(
             TransactionVersion::Testnet,
             origin_auth.clone(),
@@ -1710,11 +1793,6 @@ mod test {
                 )),
             ),
         );
-
-        let stx_address = StacksAddress {
-            version: 0,
-            bytes: Hash160([0u8; 20]),
-        };
         let tx_transfer = StacksTransaction::new(
             TransactionVersion::Testnet,
             origin_auth.clone(),
@@ -1778,35 +1856,43 @@ mod test {
         let no_coinbase = vec![tx_transfer.clone()];
         let coinbase_contract = vec![tx_coinbase_contract.clone()];
         let versioned_contract = vec![tx_versioned_smart_contract.clone()];
+        let order_independent_multisig_txs = vec![
+            order_independent_multisig_tx_transfer_mainnet.clone(),
+            order_independent_sponsored_multisig_tx_transfer_mainnet.clone()
+        ];
 
         assert!(!StacksBlock::validate_transactions_unique(&dup_txs));
         assert!(!StacksBlock::validate_transactions_network(
             &mainnet_txs,
-            false
+            false,
         ));
         assert!(!StacksBlock::validate_transactions_chain_id(
             &alt_chain_id_txs,
-            0x80000000
+            0x80000000,
         ));
         assert!(!StacksBlock::validate_anchor_mode(&offchain_txs, true));
         assert!(!StacksBlock::validate_coinbase(&no_coinbase, true));
         assert!(!StacksBlock::validate_transactions_static_epoch(
             &coinbase_contract,
-            StacksEpochId::Epoch2_05
+            StacksEpochId::Epoch2_05,
         ));
 
         assert!(StacksBlock::validate_transactions_static_epoch(
             &coinbase_contract,
-            StacksEpochId::Epoch21
+            StacksEpochId::Epoch21,
         ));
 
         assert!(!StacksBlock::validate_transactions_static_epoch(
             &versioned_contract,
-            StacksEpochId::Epoch2_05
+            StacksEpochId::Epoch2_05,
         ));
         assert!(StacksBlock::validate_transactions_static_epoch(
             &versioned_contract,
-            StacksEpochId::Epoch21
+            StacksEpochId::Epoch21,
+        ));
+        assert!(StacksBlock::validate_transactions_static_epoch(
+            &order_independent_multisig_txs,
+            StacksEpochId::Epoch21,
         ));
     }
 
