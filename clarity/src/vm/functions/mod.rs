@@ -63,7 +63,7 @@ macro_rules! switch_on_global_epoch {
                 // Note: We reuse 2.05 for 2.4.
                 StacksEpochId::Epoch24 => $Epoch205Version(args, env, context),
                 // Note: We reuse 2.05 for 2.5.
-                StacksEpochId::Epoch25 => $Epoch205Version(args, env, context),
+                StacksEpochId::Epoch30 => $Epoch205Version(args, env, context),
             }
         }
     };

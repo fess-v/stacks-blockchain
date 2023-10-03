@@ -542,7 +542,7 @@ impl Config {
             } else if epoch_name == EPOCH_CONFIG_2_4_0 {
                 Ok(StacksEpochId::Epoch24)
             } else if epoch_name == EPOCH_CONFIG_2_5_0 {
-                Ok(StacksEpochId::Epoch25)
+                Ok(StacksEpochId::Epoch30)
             } else {
                 Err(format!("Unknown epoch name specified: {}", epoch_name))
             }?;
@@ -568,7 +568,7 @@ impl Config {
             StacksEpochId::Epoch22,
             StacksEpochId::Epoch23,
             StacksEpochId::Epoch24,
-            StacksEpochId::Epoch25,
+            StacksEpochId::Epoch30,
         ];
         for (expected_epoch, configured_epoch) in expected_list
             .iter()

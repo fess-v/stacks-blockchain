@@ -4907,7 +4907,7 @@ impl StacksChainState {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
                             applied = true;
                         }
-                        StacksEpochId::Epoch25 => {
+                        StacksEpochId::Epoch30 => {
                             receipts.push(clarity_tx.block.initialize_epoch_2_05()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_1()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_2()?);
@@ -4943,7 +4943,7 @@ impl StacksChainState {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
                             applied = true;
                         }
-                        StacksEpochId::Epoch25 => {
+                        StacksEpochId::Epoch30 => {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_1()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_2()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_3()?);
@@ -4971,7 +4971,7 @@ impl StacksChainState {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
                             applied = true;
                         }
-                        StacksEpochId::Epoch25 => {
+                        StacksEpochId::Epoch30 => {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_2()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_3()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
@@ -4992,7 +4992,7 @@ impl StacksChainState {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
                             applied = true;
                         }
-                        StacksEpochId::Epoch25 => {
+                        StacksEpochId::Epoch30 => {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_3()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
@@ -5007,7 +5007,7 @@ impl StacksChainState {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
                             applied = true;
                         }
-                        StacksEpochId::Epoch25 => {
+                        StacksEpochId::Epoch30 => {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
                             applied = true;
@@ -5020,12 +5020,12 @@ impl StacksChainState {
                         assert_eq!(
                             sortition_epoch.epoch_id,
                             StacksEpochId::Epoch24,
-                            "Should only transition from Epoch24 to Epoch25"
+                            "Should only transition from Epoch24 to Epoch30"
                         );
                         receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
                         applied = true;
                     }
-                    StacksEpochId::Epoch25 => {
+                    StacksEpochId::Epoch30 => {
                         panic!("No defined transition from Epoch24 forward")
                     }
                 }
@@ -5619,7 +5619,7 @@ impl StacksChainState {
             | StacksEpochId::Epoch22
             | StacksEpochId::Epoch23
             | StacksEpochId::Epoch24
-            | StacksEpochId::Epoch25 => {
+            | StacksEpochId::Epoch30 => {
                 StacksChainState::get_stacking_and_transfer_and_delegate_burn_ops_v210(
                     chainstate_tx,
                     parent_index_hash,
@@ -5704,7 +5704,7 @@ impl StacksChainState {
                         pox_start_cycle_info,
                     )
                 }
-                StacksEpochId::Epoch24 | StacksEpochId::Epoch25 => {
+                StacksEpochId::Epoch24 | StacksEpochId::Epoch30 => {
                     Self::handle_pox_cycle_start_pox_3(
                         clarity_tx,
                         pox_reward_cycle,

@@ -54,7 +54,7 @@ impl FunctionType {
             | StacksEpochId::Epoch22
             | StacksEpochId::Epoch23
             | StacksEpochId::Epoch24
-            | StacksEpochId::Epoch25 => self.check_args_2_1(accounting, args, clarity_version),
+            | StacksEpochId::Epoch30 => self.check_args_2_1(accounting, args, clarity_version),
             StacksEpochId::Epoch10 => unreachable!("Epoch10 is not supported"),
         }
     }
@@ -74,7 +74,7 @@ impl FunctionType {
             | StacksEpochId::Epoch22
             | StacksEpochId::Epoch23
             | StacksEpochId::Epoch24
-            | StacksEpochId::Epoch25 => {
+            | StacksEpochId::Epoch30 => {
                 self.check_args_by_allowing_trait_cast_2_1(db, clarity_version, func_args)
             }
             StacksEpochId::Epoch10 => unreachable!("Epoch10 is not supported"),

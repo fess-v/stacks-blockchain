@@ -1286,18 +1286,18 @@ impl<'a, 'b> ClarityBlockConnection<'a, 'b> {
             self.cost_track.replace(LimitedCostTracker::new_free());
 
             // first, upgrade the epoch
-            self.epoch = StacksEpochId::Epoch25;
+            self.epoch = StacksEpochId::Epoch30;
             self.as_transaction(|tx_conn| {
                 // bump the epoch in the Clarity DB
                 tx_conn
                     .with_clarity_db(|db| {
-                        db.set_clarity_epoch_version(StacksEpochId::Epoch25);
+                        db.set_clarity_epoch_version(StacksEpochId::Epoch30);
                         Ok(())
                     })
                     .unwrap();
 
                 // require 2.5 rules henceforth in this connection as well
-                tx_conn.epoch = StacksEpochId::Epoch25;
+                tx_conn.epoch = StacksEpochId::Epoch30;
             });
 
             debug!("Epoch 2.5 initialized");

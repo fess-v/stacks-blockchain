@@ -992,7 +992,7 @@ impl StacksEpochExtension for StacksEpoch {
                 network_epoch: PEER_VERSION_EPOCH_2_4,
             },
             StacksEpoch {
-                epoch_id: StacksEpochId::Epoch25,
+                epoch_id: StacksEpochId::Epoch30,
                 start_height: first_burnchain_height + 24,
                 end_height: STACKS_EPOCH_MAX,
                 block_limit: ExecutionCost {
@@ -1069,7 +1069,7 @@ impl StacksEpochExtension for StacksEpoch {
             StacksEpochId::Epoch22 => StacksEpoch::unit_test_2_2(first_burnchain_height),
             StacksEpochId::Epoch23 => StacksEpoch::unit_test_2_3(first_burnchain_height),
             StacksEpochId::Epoch24 => StacksEpoch::unit_test_2_4(first_burnchain_height),
-            StacksEpochId::Epoch25 => StacksEpoch::unit_test_2_5(first_burnchain_height),
+            StacksEpochId::Epoch30 => StacksEpoch::unit_test_2_5(first_burnchain_height),
         }
     }
 

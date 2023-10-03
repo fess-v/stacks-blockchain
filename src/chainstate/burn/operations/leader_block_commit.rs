@@ -760,7 +760,7 @@ impl LeaderBlockCommitOp {
             StacksEpochId::Epoch22 => self.check_epoch_commit_marker(STACKS_EPOCH_2_2_MARKER),
             StacksEpochId::Epoch23 => self.check_epoch_commit_marker(STACKS_EPOCH_2_3_MARKER),
             StacksEpochId::Epoch24 => self.check_epoch_commit_marker(STACKS_EPOCH_2_4_MARKER),
-            StacksEpochId::Epoch25 => self.check_epoch_commit_marker(STACKS_EPOCH_2_5_MARKER),
+            StacksEpochId::Epoch30 => self.check_epoch_commit_marker(STACKS_EPOCH_2_5_MARKER),
         }
     }
 
@@ -779,7 +779,7 @@ impl LeaderBlockCommitOp {
             | StacksEpochId::Epoch22
             | StacksEpochId::Epoch23
             | StacksEpochId::Epoch24
-            | StacksEpochId::Epoch25 => {
+            | StacksEpochId::Epoch30 => {
                 // correct behavior -- uses *sortition height* to find the intended sortition ID
                 let sortition_height = self
                     .block_height

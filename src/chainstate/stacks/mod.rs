@@ -563,12 +563,8 @@ impl OrderIndependentMultisigHashMode {
 
     pub fn from_u8(n: u8) -> Option<OrderIndependentMultisigHashMode> {
         match n {
-            x if x == OrderIndependentMultisigHashMode::P2SH as u8 => {
-                Some(OrderIndependentMultisigHashMode::P2SH)
-            }
-            x if x == OrderIndependentMultisigHashMode::P2WSH as u8 => {
-                Some(OrderIndependentMultisigHashMode::P2WSH)
-            }
+            x if x == OrderIndependentMultisigHashMode::P2SH as u8 => Some(OrderIndependentMultisigHashMode::P2SH),
+            x if x == OrderIndependentMultisigHashMode::P2WSH as u8 => Some(OrderIndependentMultisigHashMode::P2WSH),
             _ => None,
         }
     }
@@ -579,7 +575,8 @@ impl OrderIndependentMultisigHashMode {
 /// public_keys + signatures_required determines the Principal.
 /// nonce is the "check number" for the Principal.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct MultisigTransactionData {
+pub struct MultisigSpendingCondition {
+    pub hash_mode: MultisigHashMode,
     pub signer: Hash160,
     pub nonce: u64,  // nth authorization from this account
     pub tx_fee: u64, // microSTX/compute rate offered by this account
@@ -588,15 +585,13 @@ pub struct MultisigTransactionData {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct MultisigSpendingCondition {
-    pub hash_mode: MultisigHashMode,
-    pub data: MultisigTransactionData,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OrderIndependentMultisigSpendingCondition {
     pub hash_mode: OrderIndependentMultisigHashMode,
-    pub data: MultisigTransactionData,
+    pub signer: Hash160,
+    pub nonce: u64,  // nth authorization from this account
+    pub tx_fee: u64, // microSTX/compute rate offered by this account
+    pub fields: Vec<TransactionAuthField>,
+    pub signatures_required: u16,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1025,60 +1020,52 @@ pub mod test {
                 signature: MessageSignature::from_raw(&vec![0xff; 65])
             }),
             TransactionSpendingCondition::Multisig(MultisigSpendingCondition {
+                signer: Hash160([0x11; 20]),
                 hash_mode: MultisigHashMode::P2SH,
-                data: MultisigTransactionData {
-                    signer: Hash160([0x11; 20]),
-                    nonce: 345,
-                    tx_fee: 678,
-                    fields: vec![
-                        TransactionAuthField::Signature(TransactionPublicKeyEncoding::Uncompressed, MessageSignature::from_raw(&vec![0xff; 65])),
-                        TransactionAuthField::Signature(TransactionPublicKeyEncoding::Uncompressed, MessageSignature::from_raw(&vec![0xfe; 65])),
-                        TransactionAuthField::PublicKey(PubKey::from_hex("04ef2340518b5867b23598a9cf74611f8b98064f7d55cdb8c107c67b5efcbc5c771f112f919b00a6c6c5f51f7c63e1762fe9fac9b66ec75a053db7f51f4a52712b").unwrap()),
-                    ],
-                    signatures_required: 2
-                }
+                nonce: 345,
+                tx_fee: 678,
+                fields: vec![
+                    TransactionAuthField::Signature(TransactionPublicKeyEncoding::Uncompressed, MessageSignature::from_raw(&vec![0xff; 65])),
+                    TransactionAuthField::Signature(TransactionPublicKeyEncoding::Uncompressed, MessageSignature::from_raw(&vec![0xfe; 65])),
+                    TransactionAuthField::PublicKey(PubKey::from_hex("04ef2340518b5867b23598a9cf74611f8b98064f7d55cdb8c107c67b5efcbc5c771f112f919b00a6c6c5f51f7c63e1762fe9fac9b66ec75a053db7f51f4a52712b").unwrap()),
+                ],
+                signatures_required: 2
             }),
             TransactionSpendingCondition::Multisig(MultisigSpendingCondition {
+                signer: Hash160([0x11; 20]),
                 hash_mode: MultisigHashMode::P2SH,
-                data: MultisigTransactionData {
-                    signer: Hash160([0x11; 20]),
-                    nonce: 456,
-                    tx_fee: 789,
-                    fields: vec![
-                        TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xff; 65])),
-                        TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xfe; 65])),
-                        TransactionAuthField::PublicKey(PubKey::from_hex("03ef2340518b5867b23598a9cf74611f8b98064f7d55cdb8c107c67b5efcbc5c77").unwrap())
-                    ],
-                    signatures_required: 2
-                }
+                nonce: 456,
+                tx_fee: 789,
+                fields: vec![
+                    TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xff; 65])),
+                    TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xfe; 65])),
+                    TransactionAuthField::PublicKey(PubKey::from_hex("03ef2340518b5867b23598a9cf74611f8b98064f7d55cdb8c107c67b5efcbc5c77").unwrap())
+                ],
+                signatures_required: 2
             }),
             TransactionSpendingCondition::OrderIndependentMultisig(OrderIndependentMultisigSpendingCondition {
+                signer: Hash160([0x11; 20]),
                 hash_mode: OrderIndependentMultisigHashMode::P2SH,
-                data: MultisigTransactionData {
-                    signer: Hash160([0x11; 20]),
-                    nonce: 345,
-                    tx_fee: 678,
-                    fields: vec![
-                        TransactionAuthField::Signature(TransactionPublicKeyEncoding::Uncompressed, MessageSignature::from_raw(&vec![0xff; 65])),
-                        TransactionAuthField::Signature(TransactionPublicKeyEncoding::Uncompressed, MessageSignature::from_raw(&vec![0xfe; 65])),
-                        TransactionAuthField::PublicKey(PubKey::from_hex("04ef2340518b5867b23598a9cf74611f8b98064f7d55cdb8c107c67b5efcbc5c771f112f919b00a6c6c5f51f7c63e1762fe9fac9b66ec75a053db7f51f4a52712b").unwrap()),
-                    ],
-                    signatures_required: 2
-                }
+                nonce: 345,
+                tx_fee: 678,
+                fields: vec![
+                    TransactionAuthField::Signature(TransactionPublicKeyEncoding::Uncompressed, MessageSignature::from_raw(&vec![0xff; 65])),
+                    TransactionAuthField::Signature(TransactionPublicKeyEncoding::Uncompressed, MessageSignature::from_raw(&vec![0xfe; 65])),
+                    TransactionAuthField::PublicKey(PubKey::from_hex("04ef2340518b5867b23598a9cf74611f8b98064f7d55cdb8c107c67b5efcbc5c771f112f919b00a6c6c5f51f7c63e1762fe9fac9b66ec75a053db7f51f4a52712b").unwrap()),
+                ],
+                signatures_required: 2
             }),
             TransactionSpendingCondition::OrderIndependentMultisig(OrderIndependentMultisigSpendingCondition {
+                signer: Hash160([0x11; 20]),
                 hash_mode: OrderIndependentMultisigHashMode::P2SH,
-                data: MultisigTransactionData {
-                    signer: Hash160([0x11; 20]),
-                    nonce: 456,
-                    tx_fee: 789,
-                    fields: vec![
-                        TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xff; 65])),
-                        TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xfe; 65])),
-                        TransactionAuthField::PublicKey(PubKey::from_hex("03ef2340518b5867b23598a9cf74611f8b98064f7d55cdb8c107c67b5efcbc5c77").unwrap())
-                    ],
-                    signatures_required: 2
-                }
+                nonce: 456,
+                tx_fee: 789,
+                fields: vec![
+                    TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xff; 65])),
+                    TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xfe; 65])),
+                    TransactionAuthField::PublicKey(PubKey::from_hex("03ef2340518b5867b23598a9cf74611f8b98064f7d55cdb8c107c67b5efcbc5c77").unwrap())
+                ],
+                signatures_required: 2
             }),
             TransactionSpendingCondition::Singlesig(SinglesigSpendingCondition {
                 signer: Hash160([0x11; 20]),
@@ -1089,32 +1076,28 @@ pub mod test {
                 signature: MessageSignature::from_raw(&vec![0xfe; 65]),
             }),
             TransactionSpendingCondition::Multisig(MultisigSpendingCondition {
+                signer: Hash160([0x11; 20]),
                 hash_mode: MultisigHashMode::P2WSH,
-                data: MultisigTransactionData {
-                    signer: Hash160([0x11; 20]),
-                    nonce: 678,
-                    tx_fee: 901,
-                    fields: vec![
-                        TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xff; 65])),
-                        TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xfe; 65])),
-                        TransactionAuthField::PublicKey(PubKey::from_hex("03ef2340518b5867b23598a9cf74611f8b98064f7d55cdb8c107c67b5efcbc5c77").unwrap())
-                    ],
-                    signatures_required: 2
-                }
+                nonce: 678,
+                tx_fee: 901,
+                fields: vec![
+                    TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xff; 65])),
+                    TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xfe; 65])),
+                    TransactionAuthField::PublicKey(PubKey::from_hex("03ef2340518b5867b23598a9cf74611f8b98064f7d55cdb8c107c67b5efcbc5c77").unwrap())
+                ],
+                signatures_required: 2
             }),
             TransactionSpendingCondition::OrderIndependentMultisig(OrderIndependentMultisigSpendingCondition {
+                signer: Hash160([0x11; 20]),
                 hash_mode: OrderIndependentMultisigHashMode::P2WSH,
-                data: MultisigTransactionData {
-                    signer: Hash160([0x11; 20]),
-                    nonce: 678,
-                    tx_fee: 901,
-                    fields: vec![
-                        TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xff; 65])),
-                        TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xfe; 65])),
-                        TransactionAuthField::PublicKey(PubKey::from_hex("03ef2340518b5867b23598a9cf74611f8b98064f7d55cdb8c107c67b5efcbc5c77").unwrap())
-                    ],
-                    signatures_required: 2
-                }
+                nonce: 678,
+                tx_fee: 901,
+                fields: vec![
+                    TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xff; 65])),
+                    TransactionAuthField::Signature(TransactionPublicKeyEncoding::Compressed, MessageSignature::from_raw(&vec![0xfe; 65])),
+                    TransactionAuthField::PublicKey(PubKey::from_hex("03ef2340518b5867b23598a9cf74611f8b98064f7d55cdb8c107c67b5efcbc5c77").unwrap())
+                ],
+                signatures_required: 2
             })
         ];
 

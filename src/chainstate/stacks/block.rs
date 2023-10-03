@@ -592,7 +592,7 @@ impl StacksBlock {
                 }
             }
         }
-        if epoch_id < StacksEpochId::Epoch25 {
+        if epoch_id < StacksEpochId::Epoch30 {
             for tx in txs.iter() {
                 match &tx.auth {
                     TransactionAuth::Sponsored(ref origin, ref sponsor) => {
@@ -1903,7 +1903,7 @@ mod test {
         ));
         assert!(StacksBlock::validate_transactions_static_epoch(
             &order_independent_multisig_txs,
-            StacksEpochId::Epoch25,
+            StacksEpochId::Epoch30,
         ));
         assert!(!StacksBlock::validate_transactions_static_epoch(
             &order_independent_multisig_txs,

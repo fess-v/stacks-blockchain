@@ -1214,7 +1214,7 @@ mod test {
                             data.signature = MessageSignature::from_raw(&sig_bytes);
                         }
                         TransactionSpendingCondition::Multisig(ref mut data) => {
-                            let corrupt_field = match data.data.fields[i] {
+                            let corrupt_field = match data.fields[i] {
                                 TransactionAuthField::PublicKey(ref pubkey) => {
                                     TransactionAuthField::PublicKey(StacksPublicKey::from_hex("0270790e675116a63a75008832d82ad93e4332882ab0797b0f156de9d739160a0b").unwrap())
                                 }
@@ -1225,10 +1225,10 @@ mod test {
                                     TransactionAuthField::Signature(*key_encoding, corrupt_sig)
                                 }
                             };
-                            data.data.fields[i] = corrupt_field
+                            data.fields[i] = corrupt_field
                         }
                         TransactionSpendingCondition::OrderIndependentMultisig(ref mut data) => {
-                            let corrupt_field = match data.data.fields[i] {
+                            let corrupt_field = match data.fields[i] {
                                 TransactionAuthField::PublicKey(ref pubkey) => {
                                     TransactionAuthField::PublicKey(StacksPublicKey::from_hex("0270790e675116a63a75008832d82ad93e4332882ab0797b0f156de9d739160a0b").unwrap())
                                 }
@@ -1239,7 +1239,7 @@ mod test {
                                     TransactionAuthField::Signature(*key_encoding, corrupt_sig)
                                 }
                             };
-                            data.data.fields[i] = corrupt_field
+                            data.fields[i] = corrupt_field
                         }
                     }
                 }
@@ -1253,7 +1253,7 @@ mod test {
                             data.signature = MessageSignature::from_raw(&sig_bytes);
                         }
                         TransactionSpendingCondition::Multisig(ref mut data) => {
-                            let corrupt_field = match data.data.fields[i] {
+                            let corrupt_field = match data.fields[i] {
                                 TransactionAuthField::PublicKey(_) => {
                                     TransactionAuthField::PublicKey(StacksPublicKey::from_hex("0270790e675116a63a75008832d82ad93e4332882ab0797b0f156de9d739160a0b").unwrap())
                                 }
@@ -1264,10 +1264,10 @@ mod test {
                                     TransactionAuthField::Signature(*key_encoding, corrupt_sig)
                                 }
                             };
-                            data.data.fields[i] = corrupt_field
+                            data.fields[i] = corrupt_field
                         }
                         TransactionSpendingCondition::OrderIndependentMultisig(ref mut data) => {
-                            let corrupt_field = match data.data.fields[i] {
+                            let corrupt_field = match data.fields[i] {
                                 TransactionAuthField::PublicKey(_) => {
                                     TransactionAuthField::PublicKey(StacksPublicKey::from_hex("0270790e675116a63a75008832d82ad93e4332882ab0797b0f156de9d739160a0b").unwrap())
                                 }
@@ -1278,7 +1278,7 @@ mod test {
                                     TransactionAuthField::Signature(*key_encoding, corrupt_sig)
                                 }
                             };
-                            data.data.fields[i] = corrupt_field
+                            data.fields[i] = corrupt_field
                         }
                     }
                 }
@@ -1290,7 +1290,7 @@ mod test {
                             data.signature = MessageSignature::from_raw(&sig_bytes);
                         }
                         TransactionSpendingCondition::Multisig(ref mut data) => {
-                            let corrupt_field = match data.data.fields[i] {
+                            let corrupt_field = match data.fields[i] {
                                 TransactionAuthField::PublicKey(ref pubkey) => {
                                     TransactionAuthField::PublicKey(StacksPublicKey::from_hex("0270790e675116a63a75008832d82ad93e4332882ab0797b0f156de9d739160a0b").unwrap())
                                 }
@@ -1301,10 +1301,10 @@ mod test {
                                     TransactionAuthField::Signature(*key_encoding, corrupt_sig)
                                 }
                             };
-                            data.data.fields[i] = corrupt_field
+                            data.fields[i] = corrupt_field
                         }
                         TransactionSpendingCondition::OrderIndependentMultisig(ref mut data) => {
-                            let corrupt_field = match data.data.fields[i] {
+                            let corrupt_field = match data.fields[i] {
                                 TransactionAuthField::PublicKey(ref pubkey) => {
                                     TransactionAuthField::PublicKey(StacksPublicKey::from_hex("0270790e675116a63a75008832d82ad93e4332882ab0797b0f156de9d739160a0b").unwrap())
                                 }
@@ -1315,7 +1315,7 @@ mod test {
                                     TransactionAuthField::Signature(*key_encoding, corrupt_sig)
                                 }
                             };
-                            data.data.fields[i] = corrupt_field
+                            data.fields[i] = corrupt_field
                         }
                     }
                 }
@@ -1329,8 +1329,8 @@ mod test {
             TransactionSpendingCondition::Singlesig(_) => 0,
             TransactionSpendingCondition::Multisig(ref data) => {
                 let mut j = 0;
-                for f in 0..data.data.fields.len() {
-                    match data.data.fields[f] {
+                for f in 0..data.fields.len() {
+                    match data.fields[f] {
                         TransactionAuthField::Signature(_, _) => {
                             j = f;
                             break;
@@ -1344,8 +1344,8 @@ mod test {
             }
             TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
                 let mut j = 0;
-                for f in 0..data.data.fields.len() {
-                    match data.data.fields[f] {
+                for f in 0..data.fields.len() {
+                    match data.fields[f] {
                         TransactionAuthField::Signature(_, _) => {
                             j = f;
                             break;
@@ -1365,8 +1365,8 @@ mod test {
             TransactionSpendingCondition::Singlesig(_) => 0,
             TransactionSpendingCondition::Multisig(ref data) => {
                 let mut j = 0;
-                for f in 0..data.data.fields.len() {
-                    match data.data.fields[f] {
+                for f in 0..data.fields.len() {
+                    match data.fields[f] {
                         TransactionAuthField::PublicKey(_) => {
                             j = f;
                             break;
@@ -1380,8 +1380,8 @@ mod test {
             }
             TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
                 let mut j = 0;
-                for f in 0..data.data.fields.len() {
-                    match data.data.fields[f] {
+                for f in 0..data.fields.len() {
+                    match data.fields[f] {
                         TransactionAuthField::PublicKey(_) => {
                             j = f;
                             break;
@@ -1561,10 +1561,10 @@ mod test {
                             data.nonce += 1;
                         }
                         TransactionSpendingCondition::Multisig(ref mut data) => {
-                            data.data.nonce += 1;
+                            data.nonce += 1;
                         }
                         TransactionSpendingCondition::OrderIndependentMultisig(ref mut data) => {
-                            data.data.nonce += 1;
+                            data.nonce += 1;
                         }
                     };
                 }
@@ -1576,10 +1576,10 @@ mod test {
                             data.nonce += 1;
                         }
                         TransactionSpendingCondition::Multisig(ref mut data) => {
-                            data.data.nonce += 1;
+                            data.nonce += 1;
                         }
                         TransactionSpendingCondition::OrderIndependentMultisig(ref mut data) => {
-                            data.data.nonce += 1;
+                            data.nonce += 1;
                         }
                     }
                 }
@@ -1589,10 +1589,10 @@ mod test {
                             data.nonce += 1;
                         }
                         TransactionSpendingCondition::Multisig(ref mut data) => {
-                            data.data.nonce += 1;
+                            data.nonce += 1;
                         }
                         TransactionSpendingCondition::OrderIndependentMultisig(ref mut data) => {
-                            data.data.nonce += 1;
+                            data.nonce += 1;
                         }
                     }
                 }
@@ -1632,11 +1632,11 @@ mod test {
                         TransactionSpendingCondition::Singlesig(ref mut data) => {}
                         TransactionSpendingCondition::Multisig(ref mut data) => {
                             is_multisig_origin = true;
-                            data.data.signatures_required += 1;
+                            data.signatures_required += 1;
                         }
                         TransactionSpendingCondition::OrderIndependentMultisig(ref mut data) => {
                             is_multisig_origin = true;
-                            data.data.signatures_required += 1;
+                            data.signatures_required += 1;
                         }
                     };
                 }
@@ -1647,11 +1647,11 @@ mod test {
                         TransactionSpendingCondition::Singlesig(ref mut data) => {}
                         TransactionSpendingCondition::Multisig(ref mut data) => {
                             is_multisig_origin = true;
-                            data.data.signatures_required += 1;
+                            data.signatures_required += 1;
                         }
                         TransactionSpendingCondition::OrderIndependentMultisig(ref mut data) => {
                             is_multisig_origin = true;
-                            data.data.signatures_required += 1;
+                            data.signatures_required += 1;
                         }
                     }
                 }
@@ -1660,11 +1660,11 @@ mod test {
                         TransactionSpendingCondition::Singlesig(ref mut data) => {}
                         TransactionSpendingCondition::Multisig(ref mut data) => {
                             is_multisig_sponsor = true;
-                            data.data.signatures_required += 1;
+                            data.signatures_required += 1;
                         }
                         TransactionSpendingCondition::OrderIndependentMultisig(ref mut data) => {
                             is_multisig_sponsor = true;
-                            data.data.signatures_required += 1;
+                            data.signatures_required += 1;
                         }
                     }
                 }
@@ -4152,21 +4152,21 @@ mod test {
             match signed_tx.auth {
                 TransactionAuth::Standard(ref origin) => match origin {
                     TransactionSpendingCondition::Multisig(ref data) => {
-                        assert_eq!(data.data.signer, origin_address.bytes);
-                        assert_eq!(data.data.fields.len(), 3);
-                        assert!(data.data.fields[0].is_signature());
-                        assert!(data.data.fields[1].is_signature());
-                        assert!(data.data.fields[2].is_public_key());
+                        assert_eq!(data.signer, origin_address.bytes);
+                        assert_eq!(data.fields.len(), 3);
+                        assert!(data.fields[0].is_signature());
+                        assert!(data.fields[1].is_signature());
+                        assert!(data.fields[2].is_public_key());
 
                         assert_eq!(
-                            data.data.fields[0].as_signature().unwrap().0,
+                            data.fields[0].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Compressed
                         );
                         assert_eq!(
-                            data.data.fields[1].as_signature().unwrap().0,
+                            data.fields[1].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Compressed
                         );
-                        assert_eq!(data.data.fields[2].as_public_key().unwrap(), pubk_3);
+                        assert_eq!(data.fields[2].as_public_key().unwrap(), pubk_3);
                     }
                     _ => assert!(false),
                 },
@@ -4295,21 +4295,21 @@ mod test {
                     }
                     match sponsor {
                         TransactionSpendingCondition::Multisig(ref data) => {
-                            assert_eq!(data.data.signer, sponsor_address.bytes);
-                            assert_eq!(data.data.fields.len(), 3);
-                            assert!(data.data.fields[0].is_signature());
-                            assert!(data.data.fields[1].is_signature());
-                            assert!(data.data.fields[2].is_public_key());
+                            assert_eq!(data.signer, sponsor_address.bytes);
+                            assert_eq!(data.fields.len(), 3);
+                            assert!(data.fields[0].is_signature());
+                            assert!(data.fields[1].is_signature());
+                            assert!(data.fields[2].is_public_key());
 
                             assert_eq!(
-                                data.data.fields[0].as_signature().unwrap().0,
+                                data.fields[0].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Compressed
                             );
                             assert_eq!(
-                                data.data.fields[1].as_signature().unwrap().0,
+                                data.fields[1].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Compressed
                             );
-                            assert_eq!(data.data.fields[2].as_public_key().unwrap(), pubk_3);
+                            assert_eq!(data.fields[2].as_public_key().unwrap(), pubk_3);
                         }
                         _ => assert!(false),
                     }
@@ -4393,21 +4393,21 @@ mod test {
             match signed_tx.auth {
                 TransactionAuth::Standard(ref origin) => match origin {
                     TransactionSpendingCondition::Multisig(ref data) => {
-                        assert_eq!(data.data.signer, origin_address.bytes);
-                        assert_eq!(data.data.fields.len(), 3);
-                        assert!(data.data.fields[0].is_signature());
-                        assert!(data.data.fields[1].is_signature());
-                        assert!(data.data.fields[2].is_public_key());
+                        assert_eq!(data.signer, origin_address.bytes);
+                        assert_eq!(data.fields.len(), 3);
+                        assert!(data.fields[0].is_signature());
+                        assert!(data.fields[1].is_signature());
+                        assert!(data.fields[2].is_public_key());
 
                         assert_eq!(
-                            data.data.fields[0].as_signature().unwrap().0,
+                            data.fields[0].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Uncompressed
                         );
                         assert_eq!(
-                            data.data.fields[1].as_signature().unwrap().0,
+                            data.fields[1].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Uncompressed
                         );
-                        assert_eq!(data.data.fields[2].as_public_key().unwrap(), pubk_3);
+                        assert_eq!(data.fields[2].as_public_key().unwrap(), pubk_3);
                     }
                     _ => assert!(false),
                 },
@@ -4535,21 +4535,21 @@ mod test {
                     }
                     match sponsor {
                         TransactionSpendingCondition::Multisig(ref data) => {
-                            assert_eq!(data.data.signer, sponsor_address.bytes);
-                            assert_eq!(data.data.fields.len(), 3);
-                            assert!(data.data.fields[0].is_signature());
-                            assert!(data.data.fields[1].is_signature());
-                            assert!(data.data.fields[2].is_public_key());
+                            assert_eq!(data.signer, sponsor_address.bytes);
+                            assert_eq!(data.fields.len(), 3);
+                            assert!(data.fields[0].is_signature());
+                            assert!(data.fields[1].is_signature());
+                            assert!(data.fields[2].is_public_key());
 
                             assert_eq!(
-                                data.data.fields[0].as_signature().unwrap().0,
+                                data.fields[0].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Uncompressed
                             );
                             assert_eq!(
-                                data.data.fields[1].as_signature().unwrap().0,
+                                data.fields[1].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Uncompressed
                             );
-                            assert_eq!(data.data.fields[2].as_public_key().unwrap(), pubk_3);
+                            assert_eq!(data.fields[2].as_public_key().unwrap(), pubk_3);
                         }
                         _ => assert!(false),
                     }
@@ -4629,19 +4629,19 @@ mod test {
             match signed_tx.auth {
                 TransactionAuth::Standard(ref origin) => match origin {
                     TransactionSpendingCondition::Multisig(ref data) => {
-                        assert_eq!(data.data.signer, origin_address.bytes);
-                        assert_eq!(data.data.fields.len(), 3);
-                        assert!(data.data.fields[0].is_signature());
-                        assert!(data.data.fields[1].is_public_key());
-                        assert!(data.data.fields[2].is_signature());
+                        assert_eq!(data.signer, origin_address.bytes);
+                        assert_eq!(data.fields.len(), 3);
+                        assert!(data.fields[0].is_signature());
+                        assert!(data.fields[1].is_public_key());
+                        assert!(data.fields[2].is_signature());
 
                         assert_eq!(
-                            data.data.fields[0].as_signature().unwrap().0,
+                            data.fields[0].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Compressed
                         );
-                        assert_eq!(data.data.fields[1].as_public_key().unwrap(), pubk_2);
+                        assert_eq!(data.fields[1].as_public_key().unwrap(), pubk_2);
                         assert_eq!(
-                            data.data.fields[2].as_signature().unwrap().0,
+                            data.fields[2].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Uncompressed
                         );
                     }
@@ -4772,19 +4772,19 @@ mod test {
                     }
                     match sponsor {
                         TransactionSpendingCondition::Multisig(ref data) => {
-                            assert_eq!(data.data.signer, sponsor_address.bytes);
-                            assert_eq!(data.data.fields.len(), 3);
-                            assert!(data.data.fields[0].is_signature());
-                            assert!(data.data.fields[1].is_public_key());
-                            assert!(data.data.fields[2].is_signature());
+                            assert_eq!(data.signer, sponsor_address.bytes);
+                            assert_eq!(data.fields.len(), 3);
+                            assert!(data.fields[0].is_signature());
+                            assert!(data.fields[1].is_public_key());
+                            assert!(data.fields[2].is_signature());
 
                             assert_eq!(
-                                data.data.fields[0].as_signature().unwrap().0,
+                                data.fields[0].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Compressed
                             );
-                            assert_eq!(data.data.fields[1].as_public_key().unwrap(), pubk_2);
+                            assert_eq!(data.fields[1].as_public_key().unwrap(), pubk_2);
                             assert_eq!(
-                                data.data.fields[2].as_signature().unwrap().0,
+                                data.fields[2].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Uncompressed
                             );
                         }
@@ -5045,21 +5045,21 @@ mod test {
             match signed_tx.auth {
                 TransactionAuth::Standard(ref origin) => match origin {
                     TransactionSpendingCondition::Multisig(ref data) => {
-                        assert_eq!(data.data.signer, origin_address.bytes);
-                        assert_eq!(data.data.fields.len(), 3);
-                        assert!(data.data.fields[0].is_signature());
-                        assert!(data.data.fields[1].is_signature());
-                        assert!(data.data.fields[2].is_public_key());
+                        assert_eq!(data.signer, origin_address.bytes);
+                        assert_eq!(data.fields.len(), 3);
+                        assert!(data.fields[0].is_signature());
+                        assert!(data.fields[1].is_signature());
+                        assert!(data.fields[2].is_public_key());
 
                         assert_eq!(
-                            data.data.fields[0].as_signature().unwrap().0,
+                            data.fields[0].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Compressed
                         );
                         assert_eq!(
-                            data.data.fields[1].as_signature().unwrap().0,
+                            data.fields[1].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Compressed
                         );
-                        assert_eq!(data.data.fields[2].as_public_key().unwrap(), pubk_3);
+                        assert_eq!(data.fields[2].as_public_key().unwrap(), pubk_3);
                     }
                     _ => assert!(false),
                 },
@@ -5189,21 +5189,21 @@ mod test {
                     }
                     match sponsor {
                         TransactionSpendingCondition::Multisig(ref data) => {
-                            assert_eq!(data.data.signer, sponsor_address.bytes);
-                            assert_eq!(data.data.fields.len(), 3);
-                            assert!(data.data.fields[0].is_signature());
-                            assert!(data.data.fields[1].is_signature());
-                            assert!(data.data.fields[2].is_public_key());
+                            assert_eq!(data.signer, sponsor_address.bytes);
+                            assert_eq!(data.fields.len(), 3);
+                            assert!(data.fields[0].is_signature());
+                            assert!(data.fields[1].is_signature());
+                            assert!(data.fields[2].is_public_key());
 
                             assert_eq!(
-                                data.data.fields[0].as_signature().unwrap().0,
+                                data.fields[0].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Compressed
                             );
                             assert_eq!(
-                                data.data.fields[1].as_signature().unwrap().0,
+                                data.fields[1].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Compressed
                             );
-                            assert_eq!(data.data.fields[2].as_public_key().unwrap(), pubk_3);
+                            assert_eq!(data.fields[2].as_public_key().unwrap(), pubk_3);
                         }
                         _ => assert!(false),
                     }
@@ -5277,19 +5277,19 @@ mod test {
             match tx.auth {
                 TransactionAuth::Standard(ref origin) => match origin {
                     TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
-                        assert_eq!(data.data.signer, origin_address.bytes);
-                        assert_eq!(data.data.fields.len(), 3);
-                        assert!(data.data.fields[0].is_public_key());
-                        assert!(data.data.fields[1].is_signature());
-                        assert!(data.data.fields[2].is_signature());
+                        assert_eq!(data.signer, origin_address.bytes);
+                        assert_eq!(data.fields.len(), 3);
+                        assert!(data.fields[0].is_public_key());
+                        assert!(data.fields[1].is_signature());
+                        assert!(data.fields[2].is_signature());
 
-                        assert_eq!(data.data.fields[0].as_public_key().unwrap(), pubk_1);
+                        assert_eq!(data.fields[0].as_public_key().unwrap(), pubk_1);
                         assert_eq!(
-                            data.data.fields[1].as_signature().unwrap().0,
+                            data.fields[1].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Compressed
                         );
                         assert_eq!(
-                            data.data.fields[2].as_signature().unwrap().0,
+                            data.fields[2].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Compressed
                         );
                     }
@@ -5428,21 +5428,21 @@ mod test {
                     }
                     match sponsor {
                         TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
-                            assert_eq!(data.data.signer, sponsor_address.bytes);
-                            assert_eq!(data.data.fields.len(), 3);
-                            assert!(data.data.fields[0].is_signature());
-                            assert!(data.data.fields[1].is_signature());
-                            assert!(data.data.fields[2].is_public_key());
+                            assert_eq!(data.signer, sponsor_address.bytes);
+                            assert_eq!(data.fields.len(), 3);
+                            assert!(data.fields[0].is_signature());
+                            assert!(data.fields[1].is_signature());
+                            assert!(data.fields[2].is_public_key());
 
                             assert_eq!(
-                                data.data.fields[0].as_signature().unwrap().0,
+                                data.fields[0].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Compressed
                             );
                             assert_eq!(
-                                data.data.fields[1].as_signature().unwrap().0,
+                                data.fields[1].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Compressed
                             );
-                            assert_eq!(data.data.fields[2].as_public_key().unwrap(), pubk_3);
+                            assert_eq!(data.fields[2].as_public_key().unwrap(), pubk_3);
                         }
                         _ => assert!(false),
                     }
@@ -5516,19 +5516,19 @@ mod test {
             match tx.auth {
                 TransactionAuth::Standard(ref origin) => match origin {
                     TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
-                        assert_eq!(data.data.signer, origin_address.bytes);
-                        assert_eq!(data.data.fields.len(), 3);
-                        assert!(data.data.fields[0].is_public_key());
-                        assert!(data.data.fields[1].is_signature());
-                        assert!(data.data.fields[2].is_signature());
+                        assert_eq!(data.signer, origin_address.bytes);
+                        assert_eq!(data.fields.len(), 3);
+                        assert!(data.fields[0].is_public_key());
+                        assert!(data.fields[1].is_signature());
+                        assert!(data.fields[2].is_signature());
 
-                        assert_eq!(data.data.fields[0].as_public_key().unwrap(), pubk_1);
+                        assert_eq!(data.fields[0].as_public_key().unwrap(), pubk_1);
                         assert_eq!(
-                            data.data.fields[1].as_signature().unwrap().0,
+                            data.fields[1].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Uncompressed
                         );
                         assert_eq!(
-                            data.data.fields[2].as_signature().unwrap().0,
+                            data.fields[2].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Uncompressed
                         );
                     }
@@ -5667,21 +5667,21 @@ mod test {
                     }
                     match sponsor {
                         TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
-                            assert_eq!(data.data.signer, sponsor_address.bytes);
-                            assert_eq!(data.data.fields.len(), 3);
-                            assert!(data.data.fields[0].is_signature());
-                            assert!(data.data.fields[1].is_signature());
-                            assert!(data.data.fields[2].is_public_key());
+                            assert_eq!(data.signer, sponsor_address.bytes);
+                            assert_eq!(data.fields.len(), 3);
+                            assert!(data.fields[0].is_signature());
+                            assert!(data.fields[1].is_signature());
+                            assert!(data.fields[2].is_public_key());
 
                             assert_eq!(
-                                data.data.fields[0].as_signature().unwrap().0,
+                                data.fields[0].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Uncompressed
                             );
                             assert_eq!(
-                                data.data.fields[1].as_signature().unwrap().0,
+                                data.fields[1].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Uncompressed
                             );
-                            assert_eq!(data.data.fields[2].as_public_key().unwrap(), pubk_3);
+                            assert_eq!(data.fields[2].as_public_key().unwrap(), pubk_3);
                         }
                         _ => assert!(false),
                     }
@@ -5755,19 +5755,19 @@ mod test {
             match tx.auth {
                 TransactionAuth::Standard(ref origin) => match origin {
                     TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
-                        assert_eq!(data.data.signer, origin_address.bytes);
-                        assert_eq!(data.data.fields.len(), 3);
-                        assert!(data.data.fields[0].is_signature());
-                        assert!(data.data.fields[1].is_public_key());
-                        assert!(data.data.fields[2].is_signature());
+                        assert_eq!(data.signer, origin_address.bytes);
+                        assert_eq!(data.fields.len(), 3);
+                        assert!(data.fields[0].is_signature());
+                        assert!(data.fields[1].is_public_key());
+                        assert!(data.fields[2].is_signature());
 
-                        assert_eq!(data.data.fields[1].as_public_key().unwrap(), pubk_2);
+                        assert_eq!(data.fields[1].as_public_key().unwrap(), pubk_2);
                         assert_eq!(
-                            data.data.fields[0].as_signature().unwrap().0,
+                            data.fields[0].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Compressed
                         );
                         assert_eq!(
-                            data.data.fields[2].as_signature().unwrap().0,
+                            data.fields[2].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Compressed
                         );
                     }
@@ -5906,21 +5906,21 @@ mod test {
                     }
                     match sponsor {
                         TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
-                            assert_eq!(data.data.signer, sponsor_address.bytes);
-                            assert_eq!(data.data.fields.len(), 3);
-                            assert!(data.data.fields[0].is_signature());
-                            assert!(data.data.fields[1].is_public_key());
-                            assert!(data.data.fields[2].is_signature());
+                            assert_eq!(data.signer, sponsor_address.bytes);
+                            assert_eq!(data.fields.len(), 3);
+                            assert!(data.fields[0].is_signature());
+                            assert!(data.fields[1].is_public_key());
+                            assert!(data.fields[2].is_signature());
 
                             assert_eq!(
-                                data.data.fields[0].as_signature().unwrap().0,
+                                data.fields[0].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Compressed
                             );
                             assert_eq!(
-                                data.data.fields[2].as_signature().unwrap().0,
+                                data.fields[2].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Compressed
                             );
-                            assert_eq!(data.data.fields[1].as_public_key().unwrap(), pubk_2);
+                            assert_eq!(data.fields[1].as_public_key().unwrap(), pubk_2);
                         }
                         _ => assert!(false),
                     }
@@ -5995,19 +5995,19 @@ mod test {
             match tx.auth {
                 TransactionAuth::Standard(ref origin) => match origin {
                     TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
-                        assert_eq!(data.data.signer, origin_address.bytes);
-                        assert_eq!(data.data.fields.len(), 3);
-                        assert!(data.data.fields[0].is_signature());
-                        assert!(data.data.fields[1].is_public_key());
-                        assert!(data.data.fields[2].is_signature());
+                        assert_eq!(data.signer, origin_address.bytes);
+                        assert_eq!(data.fields.len(), 3);
+                        assert!(data.fields[0].is_signature());
+                        assert!(data.fields[1].is_public_key());
+                        assert!(data.fields[2].is_signature());
 
-                        assert_eq!(data.data.fields[1].as_public_key().unwrap(), pubk_2);
+                        assert_eq!(data.fields[1].as_public_key().unwrap(), pubk_2);
                         assert_eq!(
-                            data.data.fields[0].as_signature().unwrap().0,
+                            data.fields[0].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Compressed
                         );
                         assert_eq!(
-                            data.data.fields[2].as_signature().unwrap().0,
+                            data.fields[2].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Compressed
                         );
                     }
@@ -6147,21 +6147,21 @@ mod test {
                     }
                     match sponsor {
                         TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
-                            assert_eq!(data.data.signer, sponsor_address.bytes);
-                            assert_eq!(data.data.fields.len(), 3);
-                            assert!(data.data.fields[0].is_signature());
-                            assert!(data.data.fields[1].is_public_key());
-                            assert!(data.data.fields[2].is_signature());
+                            assert_eq!(data.signer, sponsor_address.bytes);
+                            assert_eq!(data.fields.len(), 3);
+                            assert!(data.fields[0].is_signature());
+                            assert!(data.fields[1].is_public_key());
+                            assert!(data.fields[2].is_signature());
 
                             assert_eq!(
-                                data.data.fields[0].as_signature().unwrap().0,
+                                data.fields[0].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Compressed
                             );
                             assert_eq!(
-                                data.data.fields[2].as_signature().unwrap().0,
+                                data.fields[2].as_signature().unwrap().0,
                                 TransactionPublicKeyEncoding::Compressed
                             );
-                            assert_eq!(data.data.fields[1].as_public_key().unwrap(), pubk_2);
+                            assert_eq!(data.fields[1].as_public_key().unwrap(), pubk_2);
                         }
                         _ => assert!(false),
                     }

@@ -2903,7 +2903,7 @@ impl SortitionDB {
                     || version == "6"
                     || version == "7"
             }
-            StacksEpochId::Epoch25 => {
+            StacksEpochId::Epoch30 => {
                 version == "3"
                     || version == "4"
                     || version == "5"
