@@ -8375,6 +8375,7 @@ pub mod test {
                     StacksEpochId::Epoch22 => self.get_stacks_epoch(3),
                     StacksEpochId::Epoch23 => self.get_stacks_epoch(4),
                     StacksEpochId::Epoch24 => self.get_stacks_epoch(5),
+                    StacksEpochId::Epoch25 => self.get_stacks_epoch(6),
                 }
             }
             fn get_pox_payout_addrs(
@@ -8706,7 +8707,7 @@ pub mod test {
             (as-contract
                 (stx-transfer? amount tx-sender recipient))
         )
-        
+
         (stx-transfer? u500000000 tx-sender (as-contract tx-sender))
         "#;
 
@@ -8871,7 +8872,7 @@ pub mod test {
             (as-contract
                 (stx-transfer? amount tx-sender recipient))
         )
-        
+
         (stx-transfer? u500000000 tx-sender (as-contract tx-sender))
         "#;
 

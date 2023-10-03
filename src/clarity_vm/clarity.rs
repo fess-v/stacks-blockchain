@@ -1277,6 +1277,35 @@ impl<'a, 'b> ClarityBlockConnection<'a, 'b> {
         })
     }
 
+    pub fn initialize_epoch_2_5(&mut self) -> Result<Vec<StacksTransactionReceipt>, Error> {
+        // use the `using!` statement to ensure that the old cost_tracker is placed
+        //  back in all branches after initialization
+        using!(self.cost_track, "cost tracker", |old_cost_tracker| {
+            // epoch initialization is *free*.
+            // NOTE: this also means that cost functions won't be evaluated.
+            self.cost_track.replace(LimitedCostTracker::new_free());
+
+            // first, upgrade the epoch
+            self.epoch = StacksEpochId::Epoch25;
+            self.as_transaction(|tx_conn| {
+                // bump the epoch in the Clarity DB
+                tx_conn
+                    .with_clarity_db(|db| {
+                        db.set_clarity_epoch_version(StacksEpochId::Epoch25);
+                        Ok(())
+                    })
+                    .unwrap();
+
+                // require 2.5 rules henceforth in this connection as well
+                tx_conn.epoch = StacksEpochId::Epoch25;
+            });
+
+            debug!("Epoch 2.5 initialized");
+
+            (old_cost_tracker, Ok(vec![]))
+        })
+    }
+
     pub fn start_transaction_processing<'c>(&'c mut self) -> ClarityTransactionConnection<'c, 'a> {
         let store = &mut self.datastore;
         let cost_track = &mut self.cost_track;
@@ -1686,7 +1715,7 @@ mod tests {
 
             // S1G2081040G2081040G2081040G208105NK8PE5 is the transient address
             let contract = "
-                (begin 
+                (begin
                     (asserts! (is-eq tx-sender 'S1G2081040G2081040G2081040G208105NK8PE5)
                         (err tx-sender))
 

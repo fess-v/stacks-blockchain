@@ -75,6 +75,7 @@ pub enum StacksEpochId {
     Epoch22 = 0x0200f,
     Epoch23 = 0x02014,
     Epoch24 = 0x02019,
+    Epoch25 = 0x0201e,
 }
 
 impl StacksEpochId {
@@ -92,7 +93,7 @@ impl StacksEpochId {
             | StacksEpochId::Epoch21
             | StacksEpochId::Epoch22
             | StacksEpochId::Epoch23 => false,
-            StacksEpochId::Epoch24 => true,
+            StacksEpochId::Epoch24 | StacksEpochId::Epoch25 => true,
         }
     }
 }
@@ -107,6 +108,7 @@ impl std::fmt::Display for StacksEpochId {
             StacksEpochId::Epoch22 => write!(f, "2.2"),
             StacksEpochId::Epoch23 => write!(f, "2.3"),
             StacksEpochId::Epoch24 => write!(f, "2.4"),
+            StacksEpochId::Epoch25 => write!(f, "2.5"),
         }
     }
 }
@@ -123,6 +125,7 @@ impl TryFrom<u32> for StacksEpochId {
             x if x == StacksEpochId::Epoch22 as u32 => Ok(StacksEpochId::Epoch22),
             x if x == StacksEpochId::Epoch23 as u32 => Ok(StacksEpochId::Epoch23),
             x if x == StacksEpochId::Epoch24 as u32 => Ok(StacksEpochId::Epoch24),
+            x if x == StacksEpochId::Epoch25 as u32 => Ok(StacksEpochId::Epoch25),
             _ => Err("Invalid epoch"),
         }
     }

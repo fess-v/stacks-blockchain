@@ -4436,7 +4436,8 @@ fn test_epoch_switch_pox_3_contract_instantiation() {
             x if x >= 8 && x < 12 => StacksEpochId::Epoch21,
             x if x >= 12 && x < 16 => StacksEpochId::Epoch22,
             x if x >= 16 && x < 20 => StacksEpochId::Epoch23,
-            _ => StacksEpochId::Epoch24,
+            x if x >= 20 && x < 24 => StacksEpochId::Epoch24,
+            _ => StacksEpochId::Epoch25,
         };
         assert_eq!(
             chainstate

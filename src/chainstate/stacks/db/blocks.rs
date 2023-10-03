@@ -4907,6 +4907,15 @@ impl StacksChainState {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
                             applied = true;
                         }
+                        StacksEpochId::Epoch25 => {
+                            receipts.push(clarity_tx.block.initialize_epoch_2_05()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_1()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_2()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_3()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
+                            applied = true;
+                        }
                         _ => {
                             panic!("Bad Stacks epoch transition; parent_epoch = {}, current_epoch = {}", &stacks_parent_epoch, &sortition_epoch.epoch_id);
                         }
@@ -4934,6 +4943,14 @@ impl StacksChainState {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
                             applied = true;
                         }
+                        StacksEpochId::Epoch25 => {
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_1()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_2()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_3()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
+                            applied = true;
+                        }
                         _ => {
                             panic!("Bad Stacks epoch transition; parent_epoch = {}, current_epoch = {}", &stacks_parent_epoch, &sortition_epoch.epoch_id);
                         }
@@ -4954,6 +4971,13 @@ impl StacksChainState {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
                             applied = true;
                         }
+                        StacksEpochId::Epoch25 => {
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_2()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_3()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
+                            applied = true;
+                        }
                         _ => {
                             panic!("Bad Stacks epoch transition; parent_epoch = {}, current_epoch = {}", &stacks_parent_epoch, &sortition_epoch.epoch_id);
                         }
@@ -4968,21 +4992,41 @@ impl StacksChainState {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
                             applied = true;
                         }
+                        StacksEpochId::Epoch25 => {
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_3()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
+                            applied = true;
+                        }
                         _ => {
                             panic!("Bad Stacks epoch transition; parent_epoch = {}, current_epoch = {}", &stacks_parent_epoch, &sortition_epoch.epoch_id);
                         }
                     },
-                    StacksEpochId::Epoch23 => {
+                    StacksEpochId::Epoch23 => match sortition_epoch.epoch_id {
+                        StacksEpochId::Epoch24 => {
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
+                            applied = true;
+                        }
+                        StacksEpochId::Epoch25 => {
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
+                            applied = true;
+                        }
+                        _ => {
+                            panic!("Bad Stacks epoch transition; parent_epoch = {}, current_epoch = {}", &stacks_parent_epoch, &sortition_epoch.epoch_id);
+                        }
+                    },
+                    StacksEpochId::Epoch24 => {
                         assert_eq!(
                             sortition_epoch.epoch_id,
                             StacksEpochId::Epoch24,
-                            "Should only transition from Epoch23 to Epoch24"
+                            "Should only transition from Epoch24 to Epoch25"
                         );
-                        receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
+                        receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
                         applied = true;
                     }
-                    StacksEpochId::Epoch24 => {
-                        panic!("No defined transition from Epoch23 forward")
+                    StacksEpochId::Epoch25 => {
+                        panic!("No defined transition from Epoch24 forward")
                     }
                 }
             }
@@ -5292,10 +5336,10 @@ impl StacksChainState {
                         // strictly speaking this check is defensive. It will never be the case
                         // that a `miner_reward` has a `recipient_contract` that is `Some(..)`
                         // unless the block was mined in Epoch 2.1.  But you can't be too
-                        // careful... 
+                        // careful...
                         if evaluated_epoch >= StacksEpochId::Epoch21 {
                             // in 2.1 or later, the coinbase may optionally specify a contract into
-                            // which the tokens get sent.  If this is not given, then they are sent 
+                            // which the tokens get sent.  If this is not given, then they are sent
                             // to the miner address.
                             miner_reward.recipient.clone()
                         }
@@ -5574,7 +5618,8 @@ impl StacksChainState {
             StacksEpochId::Epoch21
             | StacksEpochId::Epoch22
             | StacksEpochId::Epoch23
-            | StacksEpochId::Epoch24 => {
+            | StacksEpochId::Epoch24
+            | StacksEpochId::Epoch25 => {
                 StacksChainState::get_stacking_and_transfer_and_delegate_burn_ops_v210(
                     chainstate_tx,
                     parent_index_hash,
@@ -5659,11 +5704,13 @@ impl StacksChainState {
                         pox_start_cycle_info,
                     )
                 }
-                StacksEpochId::Epoch24 => Self::handle_pox_cycle_start_pox_3(
-                    clarity_tx,
-                    pox_reward_cycle,
-                    pox_start_cycle_info,
-                ),
+                StacksEpochId::Epoch24 | StacksEpochId::Epoch25 => {
+                    Self::handle_pox_cycle_start_pox_3(
+                        clarity_tx,
+                        pox_reward_cycle,
+                        pox_start_cycle_info,
+                    )
+                }
             }
         })?;
         debug!("check_and_handle_reward_start: handled pox cycle start");

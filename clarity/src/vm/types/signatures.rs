@@ -532,7 +532,8 @@ impl TypeSignature {
             StacksEpochId::Epoch21
             | StacksEpochId::Epoch22
             | StacksEpochId::Epoch23
-            | StacksEpochId::Epoch24 => self.admits_type_v2_1(other),
+            | StacksEpochId::Epoch24
+            | StacksEpochId::Epoch25 => self.admits_type_v2_1(other),
             StacksEpochId::Epoch10 => unreachable!("epoch 1.0 not supported"),
         }
     }
@@ -731,7 +732,8 @@ impl TypeSignature {
             // Epoch-2.2 had a regression in canonicalization, so it must be preserved here.
             | StacksEpochId::Epoch22 => self.clone(),
             // Note for future epochs: Epochs >= 2.3 should use the canonicalize_v2_1() routine
-            StacksEpochId::Epoch21 | StacksEpochId::Epoch23 | StacksEpochId::Epoch24 => self.canonicalize_v2_1(),
+            StacksEpochId::Epoch21 | StacksEpochId::Epoch23 | StacksEpochId::Epoch24
+            | StacksEpochId::Epoch25 => self.canonicalize_v2_1(),
         }
     }
 
@@ -1057,7 +1059,8 @@ impl TypeSignature {
             StacksEpochId::Epoch21
             | StacksEpochId::Epoch22
             | StacksEpochId::Epoch23
-            | StacksEpochId::Epoch24 => Self::least_supertype_v2_1(a, b),
+            | StacksEpochId::Epoch24
+            | StacksEpochId::Epoch25 => Self::least_supertype_v2_1(a, b),
             StacksEpochId::Epoch10 => unreachable!("Clarity 1.0 is not supported"),
         }
     }

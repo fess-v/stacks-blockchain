@@ -721,7 +721,8 @@ impl LimitedCostTracker {
             StacksEpochId::Epoch21
             | StacksEpochId::Epoch22
             | StacksEpochId::Epoch23
-            | StacksEpochId::Epoch24 => COSTS_3_NAME.to_string(),
+            | StacksEpochId::Epoch24
+            | StacksEpochId::Epoch25 => COSTS_3_NAME.to_string(),
         }
     }
 }
