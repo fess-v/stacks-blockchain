@@ -1762,26 +1762,44 @@ mod test {
         let pubk_2 = StacksPublicKey::from_private(&privk_2);
         let pubk_3 = StacksPublicKey::from_private(&privk_3);
 
-        let order_independent_multisig_condition =
+        let order_independent_multisig_condition_p2wsh =
             TransactionSpendingCondition::new_multisig_order_independent_p2wsh(
                 2,
                 vec![pubk_1.clone(), pubk_2.clone(), pubk_3.clone()],
             )
-            .unwrap();
+                .unwrap();
 
-        let order_independent_sponsored_auth = TransactionAuth::Sponsored(
+        let order_independent_multisig_condition_p2sh =
+            TransactionSpendingCondition::new_multisig_order_independent_p2sh(
+                2,
+                vec![pubk_1.clone(), pubk_2.clone(), pubk_3.clone()],
+            )
+                .unwrap();
+
+        let order_independent_sponsored_auth_p2sh = TransactionAuth::Sponsored(
             TransactionSpendingCondition::new_singlesig_p2pkh(StacksPublicKey::from_private(
                 &privk,
             ))
-            .unwrap(),
-            order_independent_multisig_condition.clone(),
+                .unwrap(),
+            order_independent_multisig_condition_p2sh.clone(),
         );
-        let order_independent_origin_auth =
-            TransactionAuth::Standard(order_independent_multisig_condition.clone());
 
-        let order_independent_multisig_tx_transfer_mainnet = StacksTransaction::new(
+        let order_independent_sponsored_auth_p2wsh = TransactionAuth::Sponsored(
+            TransactionSpendingCondition::new_singlesig_p2pkh(StacksPublicKey::from_private(
+                &privk,
+            ))
+                .unwrap(),
+            order_independent_multisig_condition_p2wsh.clone(),
+        );
+        let order_independent_origin_auth_p2sh =
+            TransactionAuth::Standard(order_independent_multisig_condition_p2sh.clone());
+
+        let order_independent_origin_auth_p2wsh =
+            TransactionAuth::Standard(order_independent_multisig_condition_p2wsh.clone());
+
+        let order_independent_multisig_tx_transfer_mainnet_p2sh = StacksTransaction::new(
             TransactionVersion::Mainnet,
-            order_independent_origin_auth.clone(),
+            order_independent_origin_auth_p2sh.clone(),
             TransactionPayload::TokenTransfer(
                 stx_address.into(),
                 123,
@@ -1789,9 +1807,29 @@ mod test {
             ),
         );
 
-        let order_independent_sponsored_multisig_tx_transfer_mainnet = StacksTransaction::new(
+        let order_independent_multisig_tx_transfer_mainnet_p2wsh = StacksTransaction::new(
             TransactionVersion::Mainnet,
-            order_independent_sponsored_auth.clone(),
+            order_independent_origin_auth_p2wsh.clone(),
+            TransactionPayload::TokenTransfer(
+                stx_address.into(),
+                123,
+                TokenTransferMemo([1u8; 34]),
+            ),
+        );
+
+        let order_independent_sponsored_multisig_tx_transfer_mainnet_p2sh = StacksTransaction::new(
+            TransactionVersion::Mainnet,
+            order_independent_sponsored_auth_p2sh.clone(),
+            TransactionPayload::TokenTransfer(
+                stx_address.into(),
+                123,
+                TokenTransferMemo([1u8; 34]),
+            ),
+        );
+
+        let order_independent_sponsored_multisig_tx_transfer_mainnet_p2wsh = StacksTransaction::new(
+            TransactionVersion::Mainnet,
+            order_independent_sponsored_auth_p2wsh.clone(),
             TransactionPayload::TokenTransfer(
                 stx_address.into(),
                 123,
@@ -1879,8 +1917,10 @@ mod test {
         let coinbase_contract = vec![tx_coinbase_contract.clone()];
         let versioned_contract = vec![tx_versioned_smart_contract.clone()];
         let order_independent_multisig_txs = vec![
-            order_independent_multisig_tx_transfer_mainnet.clone(),
-            order_independent_sponsored_multisig_tx_transfer_mainnet.clone(),
+            order_independent_multisig_tx_transfer_mainnet_p2sh.clone(),
+            order_independent_sponsored_multisig_tx_transfer_mainnet_p2sh.clone(),
+            order_independent_multisig_tx_transfer_mainnet_p2wsh.clone(),
+            order_independent_sponsored_multisig_tx_transfer_mainnet_p2wsh.clone(),
         ];
 
         assert!(!StacksBlock::validate_transactions_unique(&dup_txs));

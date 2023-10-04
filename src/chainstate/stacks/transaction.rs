@@ -5781,6 +5781,144 @@ mod test {
     }
 
     #[test]
+    fn tx_stacks_transaction_sign_verify_standard_order_independent_p2sh_mixed_3_out_of_9() {
+        let privk_1 = StacksPrivateKey::from_hex(
+            "6d430bb91222408e7706c9001cfaeb91b08c2be6d5ac95779ab52c6b431950e001",
+        )
+        .unwrap();
+        let privk_2 = StacksPrivateKey::from_hex(
+            "2a584d899fed1d24e26b524f202763c8ab30260167429f157f1c119f550fa6af01",
+        )
+        .unwrap();
+        let privk_3 = StacksPrivateKey::from_hex(
+            "d5200dee706ee53ae98a03fba6cf4fdcc5084c30cfa9e1b3462dcdeaa3e0f1d201",
+        )
+        .unwrap();
+        let privk_4 = StacksPrivateKey::from_hex(
+            "3beb8916404874f5d5de162c95470951de5b4a7f6ec8d7a20511551821f16db501",
+        )
+        .unwrap();
+        let privk_5 = StacksPrivateKey::from_hex(
+            "601aa0939e98efec29a4dc645377c9d4acaa0b7318444ec8fd7d090d0b36d85b01",
+        )
+        .unwrap();
+        let privk_6 = StacksPrivateKey::from_hex(
+            "5a4ca3db5a3b36bc32d9f2f0894435cbc4b2b1207e95ee283616d9a0797210da01",
+        )
+        .unwrap();
+        let privk_7 = StacksPrivateKey::from_hex(
+            "068856c242bfebdc57700fa598fae4e8ebb6b5f6bf932177018071489737d3ff01",
+        )
+        .unwrap();
+        let privk_8 = StacksPrivateKey::from_hex(
+            "a07a397f6b31c803f5d7f0c4620576cb03c66c12cdbdb6cd91d001d6f0052de201",
+        )
+        .unwrap();
+        let privk_9 = StacksPrivateKey::from_hex(
+            "f395129abc42c57e394dcceebeca9f51f0cb0a3f1c3a899d62e40b9340c7cc1101",
+        )
+        .unwrap();
+
+        let pubk_1 = StacksPublicKey::from_private(&privk_1);
+        let pubk_2 = StacksPublicKey::from_private(&privk_2);
+        let pubk_3 = StacksPublicKey::from_private(&privk_3);
+        let pubk_4 = StacksPublicKey::from_private(&privk_4);
+        let pubk_5 = StacksPublicKey::from_private(&privk_5);
+        let pubk_6 = StacksPublicKey::from_private(&privk_6);
+        let pubk_7 = StacksPublicKey::from_private(&privk_7);
+        let pubk_8 = StacksPublicKey::from_private(&privk_8);
+        let pubk_9 = StacksPublicKey::from_private(&privk_9);
+
+        let origin_auth = TransactionAuth::Standard(
+            TransactionSpendingCondition::new_multisig_order_independent_p2sh(
+                3,
+                vec![pubk_1.clone(), pubk_2.clone(), pubk_3.clone(), pubk_4.clone(), pubk_5.clone(), pubk_6.clone(), pubk_7.clone(), pubk_8.clone(), pubk_9.clone()],
+            )
+            .unwrap(),
+        );
+
+        let origin_address = origin_auth.origin().address_mainnet();
+        assert_eq!(
+            origin_address,
+            StacksAddress {
+                version: C32_ADDRESS_VERSION_MAINNET_MULTISIG,
+                bytes: Hash160::from_hex("315d672961ef2583faf4107ab4ec5566014c867c").unwrap(),
+            }
+        );
+
+        let txs = tx_stacks_transaction_test_txs(&origin_auth);
+
+        for mut tx in txs {
+            assert_eq!(tx.auth().origin().num_signatures(), 0);
+
+            let tx_signer = StacksTransactionSigner::new(&tx);
+
+            let initialSigHash = tx.sign_begin();
+            let sig3 = tx.sign_no_append_origin(&initialSigHash, &privk_3).unwrap();
+            let sig1 = tx.sign_no_append_origin(&initialSigHash, &privk_1).unwrap();
+            let sig9 = tx.sign_no_append_origin(&initialSigHash, &privk_9).unwrap();
+
+            let _ = tx.append_origin_signature(sig1, TransactionPublicKeyEncoding::Compressed);
+            let _ = tx.append_next_origin(&pubk_2);
+            let _ = tx.append_origin_signature(sig3, TransactionPublicKeyEncoding::Compressed);
+            let _ = tx.append_next_origin(&pubk_4);
+            let _ = tx.append_next_origin(&pubk_5);
+            let _ = tx.append_next_origin(&pubk_6);
+            let _ = tx.append_next_origin(&pubk_7);
+            let _ = tx.append_next_origin(&pubk_8);
+            let _ = tx.append_origin_signature(sig9, TransactionPublicKeyEncoding::Compressed);
+
+            check_oversign_origin_multisig(&mut tx);
+            check_sign_no_sponsor(&mut tx);
+
+            assert_eq!(tx.auth().origin().num_signatures(), 3);
+
+            // auth is standard and first two auth fields are signatures for compressed keys.
+            // third field is the third public key
+            match tx.auth {
+                TransactionAuth::Standard(ref origin) => match origin {
+                    TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
+                        assert_eq!(data.signer, origin_address.bytes);
+                        assert_eq!(data.fields.len(), 9);
+                        assert!(data.fields[0].is_signature());
+                        assert!(data.fields[1].is_public_key());
+                        assert!(data.fields[2].is_signature());
+                        assert!(data.fields[3].is_public_key());
+                        assert!(data.fields[4].is_public_key());
+                        assert!(data.fields[5].is_public_key());
+                        assert!(data.fields[6].is_public_key());
+                        assert!(data.fields[7].is_public_key());
+                        assert!(data.fields[8].is_signature());
+
+                        assert_eq!(data.fields[1].as_public_key().unwrap(), pubk_2);
+                        assert_eq!(data.fields[3].as_public_key().unwrap(), pubk_4);
+                        assert_eq!(data.fields[4].as_public_key().unwrap(), pubk_5);
+                        assert_eq!(data.fields[5].as_public_key().unwrap(), pubk_6);
+                        assert_eq!(data.fields[6].as_public_key().unwrap(), pubk_7);
+                        assert_eq!(data.fields[7].as_public_key().unwrap(), pubk_8);
+                        assert_eq!(
+                            data.fields[0].as_signature().unwrap().0,
+                            TransactionPublicKeyEncoding::Compressed
+                        );
+                        assert_eq!(
+                            data.fields[2].as_signature().unwrap().0,
+                            TransactionPublicKeyEncoding::Compressed
+                        );
+                        assert_eq!(
+                            data.fields[8].as_signature().unwrap().0,
+                            TransactionPublicKeyEncoding::Compressed
+                        );
+                    }
+                    _ => assert!(false),
+                },
+                _ => assert!(false),
+            };
+
+            test_signature_and_corruption(&tx, true, false);
+        }
+    }
+
+    #[test]
     fn tx_stacks_transaction_sign_verify_sponsored_order_independent_p2sh_mixed() {
         let origin_privk = StacksPrivateKey::from_hex(
             "807bbe9e471ac976592cc35e3056592ecc0f778ee653fced3b491a122dd8d59701",
@@ -5934,6 +6072,196 @@ mod test {
     }
 
     #[test]
+    fn tx_stacks_transaction_sign_verify_sponsored_order_independent_p2sh_mixed_5_out_of_5() {
+        let origin_privk = StacksPrivateKey::from_hex(
+            "807bbe9e471ac976592cc35e3056592ecc0f778ee653fced3b491a122dd8d59701",
+        )
+        .unwrap();
+
+        let privk_1 = StacksPrivateKey::from_hex(
+            "6d430bb91222408e7706c9001cfaeb91b08c2be6d5ac95779ab52c6b431950e001",
+        )
+        .unwrap();
+        let privk_2 = StacksPrivateKey::from_hex(
+            "2a584d899fed1d24e26b524f202763c8ab30260167429f157f1c119f550fa6af01",
+        )
+        .unwrap();
+        let privk_3 = StacksPrivateKey::from_hex(
+            "d5200dee706ee53ae98a03fba6cf4fdcc5084c30cfa9e1b3462dcdeaa3e0f1d201",
+        )
+        .unwrap();
+        let privk_4 = StacksPrivateKey::from_hex(
+            "3beb8916404874f5d5de162c95470951de5b4a7f6ec8d7a20511551821f16db501",
+        )
+        .unwrap();
+        let privk_5 = StacksPrivateKey::from_hex(
+            "601aa0939e98efec29a4dc645377c9d4acaa0b7318444ec8fd7d090d0b36d85b01",
+        )
+        .unwrap();
+
+        let pubk_1 = StacksPublicKey::from_private(&privk_1);
+        let pubk_2 = StacksPublicKey::from_private(&privk_2);
+        let pubk_3 = StacksPublicKey::from_private(&privk_3);
+        let pubk_4 = StacksPublicKey::from_private(&privk_4);
+        let pubk_5 = StacksPublicKey::from_private(&privk_5);
+
+        let random_sponsor = StacksPrivateKey::new(); // what the origin sees
+
+        let auth = TransactionAuth::Sponsored(
+            TransactionSpendingCondition::new_singlesig_p2pkh(StacksPublicKey::from_private(
+                &origin_privk,
+            ))
+            .unwrap(),
+            TransactionSpendingCondition::new_singlesig_p2pkh(StacksPublicKey::from_private(
+                &random_sponsor,
+            ))
+            .unwrap(),
+        );
+
+        let real_sponsor = TransactionSpendingCondition::new_multisig_order_independent_p2sh(
+            5,
+            vec![pubk_1.clone(), pubk_2.clone(), pubk_3.clone(), pubk_4.clone(), pubk_5.clone()],
+        )
+        .unwrap();
+
+        let origin_address = auth.origin().address_mainnet();
+        let sponsor_address = real_sponsor.address_mainnet();
+
+        assert_eq!(
+            origin_address,
+            StacksAddress {
+                version: C32_ADDRESS_VERSION_MAINNET_SINGLESIG,
+                bytes: Hash160::from_hex("3597aaa4bde720be93e3829aae24e76e7fcdfd3e").unwrap(),
+            }
+        );
+        assert_eq!(
+            sponsor_address,
+            StacksAddress {
+                version: C32_ADDRESS_VERSION_MAINNET_MULTISIG,
+                bytes: Hash160::from_hex("fc29d14be615b0f72a66b920040c2b5b8124990b").unwrap(),
+            }
+        );
+
+        let txs = tx_stacks_transaction_test_txs(&auth);
+
+        for mut tx in txs {
+            assert_eq!(tx.auth().origin().num_signatures(), 0);
+            assert_eq!(tx.auth().sponsor().unwrap().num_signatures(), 0);
+
+            tx.set_tx_fee(123);
+            tx.set_sponsor_nonce(456).unwrap();
+            let mut tx_signer = StacksTransactionSigner::new(&tx);
+
+            tx_signer.sign_origin(&origin_privk).unwrap();
+
+            // sponsor sets and pays fee after origin signs
+            let mut origin_tx = tx_signer.get_tx_incomplete();
+            origin_tx.auth.set_sponsor(real_sponsor.clone()).unwrap();
+            origin_tx.set_tx_fee(456);
+            origin_tx.set_sponsor_nonce(789).unwrap();
+
+            let initialSigHash = tx_signer.sighash;
+            let sig1 = origin_tx
+                .sign_no_append_sponsor(&initialSigHash, &privk_1)
+                .unwrap();
+            let sig3 = origin_tx
+                .sign_no_append_sponsor(&initialSigHash, &privk_3)
+                .unwrap();
+            let sig2 = origin_tx
+                .sign_no_append_sponsor(&initialSigHash, &privk_2)
+                .unwrap();
+            let sig4 = origin_tx
+                .sign_no_append_sponsor(&initialSigHash, &privk_4)
+                .unwrap();
+            let sig5 = origin_tx
+                .sign_no_append_sponsor(&initialSigHash, &privk_5)
+                .unwrap();
+
+            let _ =
+                origin_tx.append_sponsor_signature(sig1, TransactionPublicKeyEncoding::Compressed);
+            let _ =
+                origin_tx.append_sponsor_signature(sig2, TransactionPublicKeyEncoding::Compressed);
+            let _ =
+                origin_tx.append_sponsor_signature(sig3, TransactionPublicKeyEncoding::Compressed);
+            let _ =
+                origin_tx.append_sponsor_signature(sig4, TransactionPublicKeyEncoding::Compressed);
+            let _ =
+                origin_tx.append_sponsor_signature(sig5, TransactionPublicKeyEncoding::Compressed);
+
+            tx.set_tx_fee(456);
+            tx.set_sponsor_nonce(789).unwrap();
+
+            check_oversign_origin_singlesig(&mut origin_tx);
+            check_oversign_sponsor_multisig(&mut origin_tx);
+
+            assert_eq!(origin_tx.auth().origin().num_signatures(), 1);
+            assert_eq!(origin_tx.auth().sponsor().unwrap().num_signatures(), 5);
+
+            // tx and origin_tx are otherwise equal
+            assert_eq!(tx.version, origin_tx.version);
+            assert_eq!(tx.chain_id, origin_tx.chain_id);
+            assert_eq!(tx.get_tx_fee(), origin_tx.get_tx_fee());
+            assert_eq!(tx.get_origin_nonce(), origin_tx.get_origin_nonce());
+            assert_eq!(tx.get_sponsor_nonce(), origin_tx.get_sponsor_nonce());
+            assert_eq!(tx.anchor_mode, origin_tx.anchor_mode);
+            assert_eq!(tx.post_condition_mode, origin_tx.post_condition_mode);
+            assert_eq!(tx.post_conditions, origin_tx.post_conditions);
+            assert_eq!(tx.payload, origin_tx.payload);
+
+            // auth is standard and first two auth fields are signatures for compressed keys.
+            // third field is the third public key
+            match origin_tx.auth {
+                TransactionAuth::Sponsored(ref origin, ref sponsor) => {
+                    match origin {
+                        TransactionSpendingCondition::Singlesig(ref data) => {
+                            assert_eq!(data.key_encoding, TransactionPublicKeyEncoding::Compressed);
+                            assert_eq!(data.signer, origin_address.bytes);
+                        }
+                        _ => assert!(false),
+                    }
+                    match sponsor {
+                        TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
+                            assert_eq!(data.signer, sponsor_address.bytes);
+                            assert_eq!(data.fields.len(), 5);
+                            assert!(data.fields[0].is_signature());
+                            assert!(data.fields[1].is_signature());
+                            assert!(data.fields[2].is_signature());
+                            assert!(data.fields[3].is_signature());
+                            assert!(data.fields[4].is_signature());
+
+                            assert_eq!(
+                                data.fields[0].as_signature().unwrap().0,
+                                TransactionPublicKeyEncoding::Compressed
+                            );
+                            assert_eq!(
+                                data.fields[1].as_signature().unwrap().0,
+                                TransactionPublicKeyEncoding::Compressed
+                            );
+                            assert_eq!(
+                                data.fields[2].as_signature().unwrap().0,
+                                TransactionPublicKeyEncoding::Compressed
+                            );
+                            assert_eq!(
+                                data.fields[3].as_signature().unwrap().0,
+                                TransactionPublicKeyEncoding::Compressed
+                            );
+                            assert_eq!(
+                                data.fields[4].as_signature().unwrap().0,
+                                TransactionPublicKeyEncoding::Compressed
+                            );
+                        }
+                        _ => assert!(false),
+                    }
+                }
+                _ => assert!(false),
+            };
+
+            test_signature_and_corruption(&origin_tx, true, false);
+            test_signature_and_corruption(&origin_tx, false, true);
+        }
+    }
+
+    #[test]
     fn tx_stacks_transaction_sign_verify_standard_order_independent_p2wsh() {
         let privk_1 = StacksPrivateKey::from_hex(
             "6d430bb91222408e7706c9001cfaeb91b08c2be6d5ac95779ab52c6b431950e001",
@@ -6008,6 +6336,125 @@ mod test {
                         );
                         assert_eq!(
                             data.fields[2].as_signature().unwrap().0,
+                            TransactionPublicKeyEncoding::Compressed
+                        );
+                    }
+                    _ => assert!(false),
+                },
+                _ => assert!(false),
+            };
+
+            test_signature_and_corruption(&tx, true, false);
+        }
+    }
+
+    #[test]
+    fn tx_stacks_transaction_sign_verify_standard_order_independent_p2wsh_4_out_of_6() {
+        let privk_1 = StacksPrivateKey::from_hex(
+            "6d430bb91222408e7706c9001cfaeb91b08c2be6d5ac95779ab52c6b431950e001",
+        )
+        .unwrap();
+        let privk_2 = StacksPrivateKey::from_hex(
+            "2a584d899fed1d24e26b524f202763c8ab30260167429f157f1c119f550fa6af01",
+        )
+        .unwrap();
+        let privk_3 = StacksPrivateKey::from_hex(
+            "d5200dee706ee53ae98a03fba6cf4fdcc5084c30cfa9e1b3462dcdeaa3e0f1d201",
+        )
+        .unwrap();
+        let privk_4 = StacksPrivateKey::from_hex(
+            "3beb8916404874f5d5de162c95470951de5b4a7f6ec8d7a20511551821f16db501",
+        )
+        .unwrap();
+        let privk_5 = StacksPrivateKey::from_hex(
+            "601aa0939e98efec29a4dc645377c9d4acaa0b7318444ec8fd7d090d0b36d85b01",
+        )
+        .unwrap();
+        let privk_6 = StacksPrivateKey::from_hex(
+            "5a4ca3db5a3b36bc32d9f2f0894435cbc4b2b1207e95ee283616d9a0797210da01",
+        )
+        .unwrap();
+
+        let pubk_1 = StacksPublicKey::from_private(&privk_1);
+        let pubk_2 = StacksPublicKey::from_private(&privk_2);
+        let pubk_3 = StacksPublicKey::from_private(&privk_3);
+        let pubk_4 = StacksPublicKey::from_private(&privk_4);
+        let pubk_5 = StacksPublicKey::from_private(&privk_5);
+        let pubk_6 = StacksPublicKey::from_private(&privk_6);
+
+        let origin_auth = TransactionAuth::Standard(
+            TransactionSpendingCondition::new_multisig_order_independent_p2wsh(
+                4,
+                vec![pubk_1.clone(), pubk_2.clone(), pubk_3.clone(), pubk_4.clone(), pubk_5.clone(), pubk_6.clone()],
+            )
+            .unwrap(),
+        );
+
+        let origin_address = origin_auth.origin().address_mainnet();
+        assert_eq!(
+            origin_address,
+            StacksAddress {
+                version: C32_ADDRESS_VERSION_MAINNET_MULTISIG,
+                bytes: Hash160::from_hex("e2a4ae14ffb0a4a0982a06d07b97d57268d2bf94").unwrap(),
+            }
+        );
+
+        let txs = tx_stacks_transaction_test_txs(&origin_auth);
+
+        for mut tx in txs {
+            assert_eq!(tx.auth().origin().num_signatures(), 0);
+
+            let tx_signer = StacksTransactionSigner::new(&tx);
+
+            let initialSigHash = tx.sign_begin();
+            let sig3 = tx.sign_no_append_origin(&initialSigHash, &privk_3).unwrap();
+            let sig1 = tx.sign_no_append_origin(&initialSigHash, &privk_1).unwrap();
+            let sig6 = tx.sign_no_append_origin(&initialSigHash, &privk_6).unwrap();
+            let sig5 = tx.sign_no_append_origin(&initialSigHash, &privk_5).unwrap();
+
+            let _ = tx.append_origin_signature(sig1, TransactionPublicKeyEncoding::Compressed);
+            let _ = tx.append_next_origin(&pubk_2);
+            let _ = tx.append_origin_signature(sig3, TransactionPublicKeyEncoding::Compressed);
+            let _ = tx.append_next_origin(&pubk_4);
+            let _ = tx.append_origin_signature(sig5, TransactionPublicKeyEncoding::Compressed);
+            let _ = tx.append_origin_signature(sig6, TransactionPublicKeyEncoding::Compressed);
+
+            check_oversign_origin_multisig(&mut tx);
+            check_oversign_origin_multisig_uncompressed(&mut tx);
+            check_sign_no_sponsor(&mut tx);
+
+            assert_eq!(tx.auth().origin().num_signatures(), 4);
+
+            // auth is standard and first two auth fields are signatures for compressed keys.
+            // third field is the third public key
+            match tx.auth {
+                TransactionAuth::Standard(ref origin) => match origin {
+                    TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
+                        assert_eq!(data.signer, origin_address.bytes);
+                        assert_eq!(data.fields.len(), 6);
+                        assert!(data.fields[0].is_signature());
+                        assert!(data.fields[1].is_public_key());
+                        assert!(data.fields[2].is_signature());
+                        assert!(data.fields[3].is_public_key());
+                        assert!(data.fields[4].is_signature());
+                        assert!(data.fields[5].is_signature());
+
+                        assert_eq!(data.fields[1].as_public_key().unwrap(), pubk_2);
+                        assert_eq!(data.fields[3].as_public_key().unwrap(), pubk_4);
+                        assert_eq!(
+                            data.fields[0].as_signature().unwrap().0,
+                            TransactionPublicKeyEncoding::Compressed
+                        );
+                        assert_eq!(
+                            data.fields[2].as_signature().unwrap().0,
+                            TransactionPublicKeyEncoding::Compressed
+                        );
+                        assert_eq!(
+                            data.fields[4].as_signature().unwrap().0,
+                            TransactionPublicKeyEncoding::Compressed
+                        );
+                        assert_eq!(
+                            data.fields[5].as_signature().unwrap().0,
                             TransactionPublicKeyEncoding::Compressed
                         );
                     }
@@ -6162,6 +6609,192 @@ mod test {
                                 TransactionPublicKeyEncoding::Compressed
                             );
                             assert_eq!(data.fields[1].as_public_key().unwrap(), pubk_2);
+                        }
+                        _ => assert!(false),
+                    }
+                }
+                _ => assert!(false),
+            };
+
+            test_signature_and_corruption(&origin_tx, true, false);
+            test_signature_and_corruption(&origin_tx, false, true);
+        }
+    }
+
+    #[test]
+    fn tx_stacks_transaction_sign_verify_sponsored_order_independent_p2wsh_2_out_of_7() {
+        let origin_privk = StacksPrivateKey::from_hex(
+            "807bbe9e471ac976592cc35e3056592ecc0f778ee653fced3b491a122dd8d59701",
+        )
+        .unwrap();
+
+        let privk_1 = StacksPrivateKey::from_hex(
+            "6d430bb91222408e7706c9001cfaeb91b08c2be6d5ac95779ab52c6b431950e001",
+        )
+        .unwrap();
+        let privk_2 = StacksPrivateKey::from_hex(
+            "2a584d899fed1d24e26b524f202763c8ab30260167429f157f1c119f550fa6af01",
+        )
+        .unwrap();
+        let privk_3 = StacksPrivateKey::from_hex(
+            "d5200dee706ee53ae98a03fba6cf4fdcc5084c30cfa9e1b3462dcdeaa3e0f1d201",
+        )
+        .unwrap();
+        let privk_4 = StacksPrivateKey::from_hex(
+            "3beb8916404874f5d5de162c95470951de5b4a7f6ec8d7a20511551821f16db501",
+        )
+        .unwrap();
+        let privk_5 = StacksPrivateKey::from_hex(
+            "601aa0939e98efec29a4dc645377c9d4acaa0b7318444ec8fd7d090d0b36d85b01",
+        )
+        .unwrap();
+        let privk_6 = StacksPrivateKey::from_hex(
+            "5a4ca3db5a3b36bc32d9f2f0894435cbc4b2b1207e95ee283616d9a0797210da01",
+        )
+        .unwrap();
+        let privk_7 = StacksPrivateKey::from_hex(
+            "068856c242bfebdc57700fa598fae4e8ebb6b5f6bf932177018071489737d3ff01",
+        )
+        .unwrap();
+
+        let pubk_1 = StacksPublicKey::from_private(&privk_1);
+        let pubk_2 = StacksPublicKey::from_private(&privk_2);
+        let pubk_3 = StacksPublicKey::from_private(&privk_3);
+        let pubk_4 = StacksPublicKey::from_private(&privk_4);
+        let pubk_5 = StacksPublicKey::from_private(&privk_5);
+        let pubk_6 = StacksPublicKey::from_private(&privk_6);
+        let pubk_7 = StacksPublicKey::from_private(&privk_7);
+
+        let random_sponsor = StacksPrivateKey::new(); // what the origin sees
+
+        let auth = TransactionAuth::Sponsored(
+            TransactionSpendingCondition::new_singlesig_p2pkh(StacksPublicKey::from_private(
+                &origin_privk,
+            ))
+            .unwrap(),
+            TransactionSpendingCondition::new_singlesig_p2pkh(StacksPublicKey::from_private(
+                &random_sponsor,
+            ))
+            .unwrap(),
+        );
+
+        let real_sponsor = TransactionSpendingCondition::new_multisig_order_independent_p2wsh(
+            2,
+            vec![pubk_1.clone(), pubk_2.clone(), pubk_3.clone(), pubk_4.clone(), pubk_5.clone(), pubk_6.clone(), pubk_7.clone()],
+        )
+        .unwrap();
+
+        let origin_address = auth.origin().address_mainnet();
+        let sponsor_address = real_sponsor.address_mainnet();
+
+        assert_eq!(
+            origin_address,
+            StacksAddress {
+                version: C32_ADDRESS_VERSION_MAINNET_SINGLESIG,
+                bytes: Hash160::from_hex("3597aaa4bde720be93e3829aae24e76e7fcdfd3e").unwrap(),
+            }
+        );
+        assert_eq!(
+            sponsor_address,
+            StacksAddress {
+                version: C32_ADDRESS_VERSION_MAINNET_MULTISIG,
+                bytes: Hash160::from_hex("e3001c2b12f24ba279116d7001e3bd82b2b5eab4").unwrap(),
+            }
+        );
+
+        let txs = tx_stacks_transaction_test_txs(&auth);
+
+        for mut tx in txs {
+            assert_eq!(tx.auth().origin().num_signatures(), 0);
+            assert_eq!(tx.auth().sponsor().unwrap().num_signatures(), 0);
+
+            tx.set_tx_fee(123);
+            tx.set_sponsor_nonce(456).unwrap();
+            let mut tx_signer = StacksTransactionSigner::new(&tx);
+
+            tx_signer.sign_origin(&origin_privk).unwrap();
+
+            // sponsor sets and pays fee after origin signs
+            let mut origin_tx = tx_signer.get_tx_incomplete();
+            origin_tx.auth.set_sponsor(real_sponsor.clone()).unwrap();
+            origin_tx.set_tx_fee(456);
+            origin_tx.set_sponsor_nonce(789).unwrap();
+
+            let initialSigHash = tx_signer.sighash;
+            let sig1 = origin_tx
+                .sign_no_append_sponsor(&initialSigHash, &privk_1)
+                .unwrap();
+            let sig7 = origin_tx
+                .sign_no_append_sponsor(&initialSigHash, &privk_7)
+                .unwrap();
+
+            let _ =
+                origin_tx.append_sponsor_signature(sig1, TransactionPublicKeyEncoding::Compressed);
+            let _ = origin_tx.append_next_sponsor(&pubk_2);
+            let _ = origin_tx.append_next_sponsor(&pubk_3);
+            let _ = origin_tx.append_next_sponsor(&pubk_4);
+            let _ = origin_tx.append_next_sponsor(&pubk_5);
+            let _ = origin_tx.append_next_sponsor(&pubk_6);
+            let _ =
+                origin_tx.append_sponsor_signature(sig7, TransactionPublicKeyEncoding::Compressed);
+
+            tx.set_tx_fee(456);
+            tx.set_sponsor_nonce(789).unwrap();
+
+            check_oversign_origin_singlesig(&mut origin_tx);
+            check_oversign_sponsor_multisig(&mut origin_tx);
+            check_oversign_sponsor_multisig_uncompressed(&mut origin_tx);
+
+            assert_eq!(origin_tx.auth().origin().num_signatures(), 1);
+            assert_eq!(origin_tx.auth().sponsor().unwrap().num_signatures(), 2);
+
+            // tx and origin_tx are otherwise equal
+            assert_eq!(tx.version, origin_tx.version);
+            assert_eq!(tx.chain_id, origin_tx.chain_id);
+            assert_eq!(tx.get_tx_fee(), origin_tx.get_tx_fee());
+            assert_eq!(tx.get_origin_nonce(), origin_tx.get_origin_nonce());
+            assert_eq!(tx.get_sponsor_nonce(), origin_tx.get_sponsor_nonce());
+            assert_eq!(tx.anchor_mode, origin_tx.anchor_mode);
+            assert_eq!(tx.post_condition_mode, origin_tx.post_condition_mode);
+            assert_eq!(tx.post_conditions, origin_tx.post_conditions);
+            assert_eq!(tx.payload, origin_tx.payload);
+
+            // auth is standard and first two auth fields are signatures for compressed keys.
+            // third field is the third public key
+            match origin_tx.auth {
+                TransactionAuth::Sponsored(ref origin, ref sponsor) => {
+                    match origin {
+                        TransactionSpendingCondition::Singlesig(ref data) => {
+                            assert_eq!(data.key_encoding, TransactionPublicKeyEncoding::Compressed);
+                            assert_eq!(data.signer, origin_address.bytes);
+                        }
+                        _ => assert!(false),
+                    }
+                    match sponsor {
+                        TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
+                            assert_eq!(data.signer, sponsor_address.bytes);
+                            assert_eq!(data.fields.len(), 7);
+                            assert!(data.fields[0].is_signature());
+                            assert!(data.fields[1].is_public_key());
+                            assert!(data.fields[2].is_public_key());
+                            assert!(data.fields[3].is_public_key());
+                            assert!(data.fields[4].is_public_key());
+                            assert!(data.fields[5].is_public_key());
+                            assert!(data.fields[6].is_signature());
+
+                            assert_eq!(
+                                data.fields[0].as_signature().unwrap().0,
+                                TransactionPublicKeyEncoding::Compressed
+                            );
+                            assert_eq!(
+                                data.fields[6].as_signature().unwrap().0,
+                                TransactionPublicKeyEncoding::Compressed
+                            );
+                            assert_eq!(data.fields[1].as_public_key().unwrap(), pubk_2);
+                            assert_eq!(data.fields[2].as_public_key().unwrap(), pubk_3);
+                            assert_eq!(data.fields[3].as_public_key().unwrap(), pubk_4);
+                            assert_eq!(data.fields[4].as_public_key().unwrap(), pubk_5);
+                            assert_eq!(data.fields[5].as_public_key().unwrap(), pubk_6);
                         }
                         _ => assert!(false),
                     }
