@@ -5019,14 +5019,14 @@ impl StacksChainState {
                     StacksEpochId::Epoch24 => {
                         assert_eq!(
                             sortition_epoch.epoch_id,
-                            StacksEpochId::Epoch24,
+                            StacksEpochId::Epoch30,
                             "Should only transition from Epoch24 to Epoch30"
                         );
                         receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
                         applied = true;
                     }
                     StacksEpochId::Epoch30 => {
-                        panic!("No defined transition from Epoch24 forward")
+                        panic!("No defined transition from Epoch30 forward")
                     }
                 }
             }
