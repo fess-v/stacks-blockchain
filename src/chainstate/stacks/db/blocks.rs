@@ -314,6 +314,7 @@ impl MemPoolRejection {
             ),
             TemporarilyBlacklisted => ("TemporarilyBlacklisted", None),
             Other(s) => ("ServerFailureOther", Some(json!({ "message": s }))),
+            EpochNotActive => ("EpochNotActive", None),
         };
         let mut result = json!({
             "txid": format!("{}", txid.to_hex()),
@@ -4914,7 +4915,7 @@ impl StacksChainState {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_2()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_3()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
-                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_3_0()?);
                             applied = true;
                         }
                         _ => {
@@ -4949,7 +4950,7 @@ impl StacksChainState {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_2()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_3()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
-                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_3_0()?);
                             applied = true;
                         }
                         _ => {
@@ -4976,7 +4977,7 @@ impl StacksChainState {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_2()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_3()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
-                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_3_0()?);
                             applied = true;
                         }
                         _ => {
@@ -4996,7 +4997,7 @@ impl StacksChainState {
                         StacksEpochId::Epoch30 => {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_3()?);
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
-                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_3_0()?);
                             applied = true;
                         }
                         _ => {
@@ -5010,7 +5011,7 @@ impl StacksChainState {
                         }
                         StacksEpochId::Epoch30 => {
                             receipts.append(&mut clarity_tx.block.initialize_epoch_2_4()?);
-                            receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
+                            receipts.append(&mut clarity_tx.block.initialize_epoch_3_0()?);
                             applied = true;
                         }
                         _ => {
@@ -5023,7 +5024,7 @@ impl StacksChainState {
                             StacksEpochId::Epoch30,
                             "Should only transition from Epoch24 to Epoch30"
                         );
-                        receipts.append(&mut clarity_tx.block.initialize_epoch_2_5()?);
+                        receipts.append(&mut clarity_tx.block.initialize_epoch_3_0()?);
                         applied = true;
                     }
                     StacksEpochId::Epoch30 => {

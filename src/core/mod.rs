@@ -58,7 +58,7 @@ pub const PEER_VERSION_EPOCH_2_1: u8 = 0x06;
 pub const PEER_VERSION_EPOCH_2_2: u8 = 0x07;
 pub const PEER_VERSION_EPOCH_2_3: u8 = 0x08;
 pub const PEER_VERSION_EPOCH_2_4: u8 = 0x09;
-pub const PEER_VERSION_EPOCH_2_5: u8 = 0x0a;
+pub const PEER_VERSION_EPOCH_3_0: u8 = 0x0a;
 
 // this should be updated to the latest network epoch version supported by
 //  this node. this will be checked by the `validate_epochs()` method.
@@ -425,9 +425,9 @@ pub static STACKS_EPOCH_2_3_MARKER: u8 = 0x08;
 /// *or greater*.
 pub static STACKS_EPOCH_2_4_MARKER: u8 = 0x09;
 
-/// Stacks 2.5 epoch marker.  All block-commits in 2.5 must have a memo bitfield with this value
+/// Stacks 3.0 epoch marker.  All block-commits in 3.0 must have a memo bitfield with this value
 /// *or greater*.
-pub static STACKS_EPOCH_2_5_MARKER: u8 = 0x0a;
+pub static STACKS_EPOCH_3_0_MARKER: u8 = 0x0a;
 
 #[test]
 fn test_ord_for_stacks_epoch() {
@@ -509,7 +509,7 @@ pub trait StacksEpochExtension {
     #[cfg(test)]
     fn unit_test_2_4(epoch_2_0_block_height: u64) -> Vec<StacksEpoch>;
     #[cfg(test)]
-    fn unit_test_2_5(epoch_2_0_block_height: u64) -> Vec<StacksEpoch>;
+    fn unit_test_3_0(epoch_2_0_block_height: u64) -> Vec<StacksEpoch>;
     #[cfg(test)]
     fn unit_test_2_1_only(epoch_2_0_block_height: u64) -> Vec<StacksEpoch>;
     fn all(
@@ -905,9 +905,9 @@ impl StacksEpochExtension for StacksEpoch {
     }
 
     #[cfg(test)]
-    fn unit_test_2_5(first_burnchain_height: u64) -> Vec<StacksEpoch> {
+    fn unit_test_3_0(first_burnchain_height: u64) -> Vec<StacksEpoch> {
         info!(
-            "StacksEpoch unit_test_2_5 first_burn_height = {}",
+            "StacksEpoch unit_test_3_0 first_burn_height = {}",
             first_burnchain_height
         );
 
@@ -1002,7 +1002,7 @@ impl StacksEpochExtension for StacksEpoch {
                     read_count: 210210,
                     runtime: 210210,
                 },
-                network_epoch: PEER_VERSION_EPOCH_2_5,
+                network_epoch: PEER_VERSION_EPOCH_3_0,
             },
         ]
     }
@@ -1069,7 +1069,7 @@ impl StacksEpochExtension for StacksEpoch {
             StacksEpochId::Epoch22 => StacksEpoch::unit_test_2_2(first_burnchain_height),
             StacksEpochId::Epoch23 => StacksEpoch::unit_test_2_3(first_burnchain_height),
             StacksEpochId::Epoch24 => StacksEpoch::unit_test_2_4(first_burnchain_height),
-            StacksEpochId::Epoch30 => StacksEpoch::unit_test_2_5(first_burnchain_height),
+            StacksEpochId::Epoch30 => StacksEpoch::unit_test_3_0(first_burnchain_height),
         }
     }
 

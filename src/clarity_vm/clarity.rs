@@ -1277,7 +1277,7 @@ impl<'a, 'b> ClarityBlockConnection<'a, 'b> {
         })
     }
 
-    pub fn initialize_epoch_2_5(&mut self) -> Result<Vec<StacksTransactionReceipt>, Error> {
+    pub fn initialize_epoch_3_0(&mut self) -> Result<Vec<StacksTransactionReceipt>, Error> {
         // use the `using!` statement to ensure that the old cost_tracker is placed
         //  back in all branches after initialization
         using!(self.cost_track, "cost tracker", |old_cost_tracker| {
@@ -1296,11 +1296,11 @@ impl<'a, 'b> ClarityBlockConnection<'a, 'b> {
                     })
                     .unwrap();
 
-                // require 2.5 rules henceforth in this connection as well
+                // require 3.0 rules henceforth in this connection as well
                 tx_conn.epoch = StacksEpochId::Epoch30;
             });
 
-            debug!("Epoch 2.5 initialized");
+            debug!("Epoch 3.0 initialized");
 
             (old_cost_tracker, Ok(vec![]))
         })

@@ -108,7 +108,7 @@ impl std::fmt::Display for StacksEpochId {
             StacksEpochId::Epoch22 => write!(f, "2.2"),
             StacksEpochId::Epoch23 => write!(f, "2.3"),
             StacksEpochId::Epoch24 => write!(f, "2.4"),
-            StacksEpochId::Epoch30 => write!(f, "2.5"),
+            StacksEpochId::Epoch30 => write!(f, "3.0"),
         }
     }
 }

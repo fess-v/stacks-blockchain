@@ -41,7 +41,7 @@ use crate::codec::{write_next, Error as codec_error, StacksMessageCodec};
 use crate::core::STACKS_EPOCH_2_2_MARKER;
 use crate::core::STACKS_EPOCH_2_3_MARKER;
 use crate::core::STACKS_EPOCH_2_4_MARKER;
-use crate::core::STACKS_EPOCH_2_5_MARKER;
+use crate::core::STACKS_EPOCH_3_0_MARKER;
 use crate::core::{StacksEpoch, StacksEpochId};
 use crate::core::{STACKS_EPOCH_2_05_MARKER, STACKS_EPOCH_2_1_MARKER};
 use crate::net::Error as net_error;
@@ -760,7 +760,7 @@ impl LeaderBlockCommitOp {
             StacksEpochId::Epoch22 => self.check_epoch_commit_marker(STACKS_EPOCH_2_2_MARKER),
             StacksEpochId::Epoch23 => self.check_epoch_commit_marker(STACKS_EPOCH_2_3_MARKER),
             StacksEpochId::Epoch24 => self.check_epoch_commit_marker(STACKS_EPOCH_2_4_MARKER),
-            StacksEpochId::Epoch30 => self.check_epoch_commit_marker(STACKS_EPOCH_2_5_MARKER),
+            StacksEpochId::Epoch30 => self.check_epoch_commit_marker(STACKS_EPOCH_3_0_MARKER),
         }
     }
 

@@ -605,7 +605,7 @@ impl StacksBlock {
                             TransactionSpendingCondition::OrderIndependentMultisig(..) => {
                                 // not supported
                                 if !quiet {
-                                    error!("Order independent multisig transactions not supported before Stacks 2.5");
+                                    error!("Order independent multisig transactions not supported before Stacks 3.0");
                                 }
                                 return false;
                             }
@@ -615,7 +615,7 @@ impl StacksBlock {
                             TransactionSpendingCondition::OrderIndependentMultisig(..) => {
                                 // not supported
                                 if !quiet {
-                                    error!("Order independent multisig transactions not supported before Stacks 2.5");
+                                    error!("Order independent multisig transactions not supported before Stacks 3.0");
                                 }
                                 return false;
                             }
@@ -627,7 +627,7 @@ impl StacksBlock {
                             TransactionSpendingCondition::OrderIndependentMultisig(..) => {
                                 // not supported
                                 if !quiet {
-                                    error!("Order independent multisig transactions not supported before Stacks 2.5");
+                                    error!("Order independent multisig transactions not supported before Stacks 3.0");
                                 }
                                 return false;
                             }
