@@ -374,7 +374,7 @@ impl OrderIndependentMultisigSpendingCondition {
         cond_code: &TransactionAuthFlags,
     ) -> Result<Txid, net_error> {
         let mut pubkeys = vec![];
-        let mut cur_sighash = initial_sighash.clone();
+        let cur_sighash = initial_sighash.clone();
         let mut num_sigs: u16 = 0;
         let mut have_uncompressed = false;
         for field in self.fields.iter() {
@@ -770,7 +770,7 @@ impl TransactionSpendingCondition {
         let signer_addr = StacksAddress::from_public_keys(
             0,
             &AddressHashMode::SerializeP2SH,
-            num_sigs as usize,
+            usize::from(num_sigs),
             &pubkeys,
         )?;
 
@@ -793,7 +793,7 @@ impl TransactionSpendingCondition {
         let signer_addr = StacksAddress::from_public_keys(
             0,
             &AddressHashMode::SerializeP2SH,
-            num_sigs as usize,
+            usize::from(num_sigs),
             &pubkeys,
         )?;
 
@@ -816,7 +816,7 @@ impl TransactionSpendingCondition {
         let signer_addr = StacksAddress::from_public_keys(
             0,
             &AddressHashMode::SerializeP2WSH,
-            num_sigs as usize,
+            usize::from(num_sigs),
             &pubkeys,
         )?;
 
@@ -839,7 +839,7 @@ impl TransactionSpendingCondition {
         let signer_addr = StacksAddress::from_public_keys(
             0,
             &AddressHashMode::SerializeP2WSH,
-            num_sigs as usize,
+            usize::from(num_sigs),
             &pubkeys,
         )?;
 
@@ -1222,10 +1222,8 @@ impl TransactionAuth {
             pubks.push(StacksPublicKey::from_private(privk));
         }
 
-        match TransactionSpendingCondition::new_multisig_order_independent_p2sh(num_sigs, pubks) {
-            Some(auth) => Some(TransactionAuth::Standard(auth)),
-            None => None,
-        }
+        TransactionSpendingCondition::new_multisig_order_independent_p2sh(num_sigs, pubks)
+            .map(|auth| TransactionAuth::Standard(auth))
     }
 
     pub fn from_p2wpkh(privk: &StacksPrivateKey) -> Option<TransactionAuth> {
@@ -1255,10 +1253,8 @@ impl TransactionAuth {
             pubks.push(StacksPublicKey::from_private(privk));
         }
 
-        match TransactionSpendingCondition::new_multisig_order_independent_p2wsh(num_sigs, pubks) {
-            Some(auth) => Some(TransactionAuth::Standard(auth)),
-            None => None,
-        }
+        TransactionSpendingCondition::new_multisig_order_independent_p2wsh(num_sigs, pubks)
+            .map(|auth| TransactionAuth::Standard(auth))
     }
 
     /// merge two standard auths into a sponsored auth.
@@ -2328,7 +2324,7 @@ mod test {
         let nonces: Vec<u64> = vec![1, 2, 3, 4];
 
         for i in 0..4 {
-            let (sig, sighash_presign, next_sighash) = TransactionSpendingCondition::next_signature(
+            let (sig, next_sighash) = TransactionSpendingCondition::next_signature(
                 &cur_sighash,
                 &auth_flags[i],
                 tx_fees[i],
@@ -2360,7 +2356,7 @@ mod test {
                 TransactionPublicKeyEncoding::Uncompressed
             };
 
-            let (next_pubkey, sighash_presign, verified_next_sighash) =
+            let (next_pubkey, verified_next_sighash) =
                 TransactionSpendingCondition::next_verification(
                     &cur_sighash,
                     &auth_flags[i],

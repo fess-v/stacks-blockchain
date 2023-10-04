@@ -569,6 +569,7 @@ impl StacksBlock {
     pub fn validate_transactions_static_epoch(
         txs: &[StacksTransaction],
         epoch_id: StacksEpochId,
+        quiet: bool
     ) -> bool {
         if epoch_id < StacksEpochId::Epoch21 {
             // nothing new since the start of the system is supported.
@@ -579,14 +580,18 @@ impl StacksBlock {
                 if let TransactionPayload::Coinbase(_, ref recipient_opt) = &tx.payload {
                     if recipient_opt.is_some() {
                         // not supported
-                        error!("Coinbase pay-to-alt-recipient not supported before Stacks 2.1"; "txid" => %tx.txid());
+                        if !quiet {
+                            error!("Coinbase pay-to-alt-recipient not supported before Stacks 2.1"; "txid" => %tx.txid());
+                        }
                         return false;
                     }
                 }
                 if let TransactionPayload::SmartContract(_, ref version_opt) = &tx.payload {
                     if version_opt.is_some() {
                         // not supported
-                        error!("Versioned smart contracts not supported before Stacks 2.1");
+                        if !quiet {
+                            error!("Versioned smart contracts not supported before Stacks 2.1");
+                        }
                         return false;
                     }
                 }
@@ -597,17 +602,21 @@ impl StacksBlock {
                 match &tx.auth {
                     TransactionAuth::Sponsored(ref origin, ref sponsor) => {
                         match origin {
-                            TransactionSpendingCondition::OrderIndependentMultisig(ref _data) => {
+                            TransactionSpendingCondition::OrderIndependentMultisig(..) => {
                                 // not supported
-                                error!("Order independent multisig transactions not supported before Stacks 2.5");
+                                if !quiet {
+                                    error!("Order independent multisig transactions not supported before Stacks 2.5");
+                                }
                                 return false;
                             }
                             _ => (),
                         }
                         match sponsor {
-                            TransactionSpendingCondition::OrderIndependentMultisig(ref _data) => {
+                            TransactionSpendingCondition::OrderIndependentMultisig(..) => {
                                 // not supported
-                                error!("Order independent multisig transactions not supported before Stacks 2.5");
+                                if !quiet {
+                                    error!("Order independent multisig transactions not supported before Stacks 2.5");
+                                }
                                 return false;
                             }
                             _ => (),
@@ -615,9 +624,11 @@ impl StacksBlock {
                     }
                     TransactionAuth::Standard(ref origin) => {
                         match origin {
-                            TransactionSpendingCondition::OrderIndependentMultisig(ref _data) => {
+                            TransactionSpendingCondition::OrderIndependentMultisig(..) => {
                                 // not supported
-                                error!("Order independent multisig transactions not supported before Stacks 2.5");
+                                if !quiet {
+                                    error!("Order independent multisig transactions not supported before Stacks 2.5");
+                                }
                                 return false;
                             }
                             _ => (),
@@ -651,7 +662,7 @@ impl StacksBlock {
         if !StacksBlock::validate_coinbase(&self.txs, true) {
             return false;
         }
-        if !StacksBlock::validate_transactions_static_epoch(&self.txs, epoch_id) {
+        if !StacksBlock::validate_transactions_static_epoch(&self.txs, epoch_id, false) {
             return false;
         }
         return true;
@@ -1886,28 +1897,34 @@ mod test {
         assert!(!StacksBlock::validate_transactions_static_epoch(
             &coinbase_contract,
             StacksEpochId::Epoch2_05,
+            false,
         ));
 
         assert!(StacksBlock::validate_transactions_static_epoch(
             &coinbase_contract,
             StacksEpochId::Epoch21,
+            false,
         ));
 
         assert!(!StacksBlock::validate_transactions_static_epoch(
             &versioned_contract,
             StacksEpochId::Epoch2_05,
+            false,
         ));
         assert!(StacksBlock::validate_transactions_static_epoch(
             &versioned_contract,
             StacksEpochId::Epoch21,
+            false,
         ));
         assert!(StacksBlock::validate_transactions_static_epoch(
             &order_independent_multisig_txs,
             StacksEpochId::Epoch30,
+            false,
         ));
         assert!(!StacksBlock::validate_transactions_static_epoch(
             &order_independent_multisig_txs,
             StacksEpochId::Epoch24,
+            false,
         ));
     }
 

@@ -1337,6 +1337,13 @@ impl StacksChainState {
                 return Err(Error::InvalidStacksTransaction(msg, false));
             }
         }
+        let is_transaction_valid_in_epoch = StacksBlock::validate_transactions_static_epoch(&vec![tx.clone()], epoch, quiet);
+
+        if !is_transaction_valid_in_epoch {
+            let msg = format!("Invalid transaction {}: target epoch is not activated", tx.txid());
+            warn!("{}", &msg);
+            return Err(Error::InvalidStacksTransaction(msg, false));
+        }
 
         let mut transaction = clarity_block.connection().start_transaction_processing();
 
