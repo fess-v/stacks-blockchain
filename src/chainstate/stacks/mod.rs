@@ -563,8 +563,12 @@ impl OrderIndependentMultisigHashMode {
 
     pub fn from_u8(n: u8) -> Option<OrderIndependentMultisigHashMode> {
         match n {
-            x if x == OrderIndependentMultisigHashMode::P2SH as u8 => Some(OrderIndependentMultisigHashMode::P2SH),
-            x if x == OrderIndependentMultisigHashMode::P2WSH as u8 => Some(OrderIndependentMultisigHashMode::P2WSH),
+            x if x == OrderIndependentMultisigHashMode::P2SH as u8 => {
+                Some(OrderIndependentMultisigHashMode::P2SH)
+            }
+            x if x == OrderIndependentMultisigHashMode::P2WSH as u8 => {
+                Some(OrderIndependentMultisigHashMode::P2WSH)
+            }
             _ => None,
         }
     }
