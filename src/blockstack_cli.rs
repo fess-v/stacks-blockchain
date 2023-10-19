@@ -320,8 +320,10 @@ fn sign_transaction_single_sig_standard(
     transaction: &str,
     secret_key: &StacksPrivateKey,
 ) -> Result<StacksTransaction, CliError> {
-    let transaction =
-        StacksTransaction::consensus_deserialize(&mut io::Cursor::new(&hex_bytes(transaction)?))?;
+    let transaction = StacksTransaction::consensus_deserialize_with_epoch(
+        &mut io::Cursor::new(&hex_bytes(transaction)?),
+        StacksEpochId::latest(),
+    )?;
 
     let mut tx_signer = StacksTransactionSigner::new(&transaction);
     tx_signer.sign_origin(secret_key)?;
@@ -668,7 +670,10 @@ fn decode_transaction(args: &[String], _version: TransactionVersion) -> Result<S
     let mut cursor = io::Cursor::new(&tx_str);
     let mut debug_cursor = LogReader::from_reader(&mut cursor);
 
-    match StacksTransaction::consensus_deserialize(&mut debug_cursor) {
+    match StacksTransaction::consensus_deserialize_with_epoch(
+        &mut debug_cursor,
+        StacksEpochId::latest(),
+    ) {
         Ok(tx) => Ok(serde_json::to_string(&tx).expect("Failed to serialize transaction to JSON")),
         Err(e) => {
             let mut ret = String::new();

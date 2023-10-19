@@ -2359,7 +2359,8 @@ impl HttpRequestType {
         preamble: &HttpRequestPreamble,
         fd: &mut R,
     ) -> Result<HttpRequestType, net_error> {
-        let tx = StacksTransaction::consensus_deserialize(fd).map_err(|e| {
+        let tx = StacksTransaction::consensus_deserialize_with_epoch(fd, StacksEpochId::latest())
+            .map_err(|e| {
             if let codec_error::DeserializeError(msg) = e {
                 net_error::ClientError(ClientError::Message(format!(
                     "Failed to deserialize posted transaction: {}",
@@ -2386,7 +2387,11 @@ impl HttpRequestType {
         let tx = {
             let tx_bytes = hex_bytes(&body.tx)
                 .map_err(|_e| net_error::DeserializeError("Failed to parse tx".into()))?;
-            StacksTransaction::consensus_deserialize(&mut &tx_bytes[..]).map_err(|e| {
+            StacksTransaction::consensus_deserialize_with_epoch(
+                &mut &tx_bytes[..],
+                StacksEpochId::latest(),
+            )
+            .map_err(|e| {
                 if let codec_error::DeserializeError(msg) = e {
                     net_error::ClientError(ClientError::Message(format!(
                         "Failed to deserialize posted transaction: {}",
@@ -3766,7 +3771,11 @@ impl HttpResponseType {
         let tx_bytes = hex_bytes(&unconfirmed_status.tx).map_err(|_| {
             net_error::DeserializeError("Unconfirmed transaction is not hex-encoded".to_string())
         })?;
-        let _ = StacksTransaction::consensus_deserialize(&mut &tx_bytes[..]).map_err(|_| {
+        let _ = StacksTransaction::consensus_deserialize_with_epoch(
+            &mut &tx_bytes[..],
+            StacksEpochId::latest(),
+        )
+        .map_err(|_| {
             net_error::DeserializeError(
                 "Unconfirmed transaction is not a well-formed Stacks transaction".to_string(),
             )
@@ -3926,7 +3935,8 @@ impl HttpResponseType {
 
         loop {
             let pos = retry_reader.position();
-            let next_msg: Result<StacksTransaction, _> = read_next(&mut retry_reader);
+            let next_msg: Result<StacksTransaction, _> =
+                read_next_with_epoch(&mut retry_reader, StacksEpochId::latest());
             match next_msg {
                 Ok(tx) => {
                     if expect_eof {

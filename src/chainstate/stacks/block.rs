@@ -42,7 +42,8 @@ use stacks_common::util::vrf::*;
 use crate::chainstate::stacks::StacksBlockHeader;
 use crate::chainstate::stacks::StacksMicroblockHeader;
 use crate::codec::{
-    read_next, write_next, DeserializeWithEpoch, Error as codec_error, StacksMessageCodec,
+    read_next, read_next_at_most_with_epoch, write_next, DeserializeWithEpoch,
+    Error as codec_error, StacksMessageCodec,
 };
 use crate::types::chainstate::BurnchainHeaderHash;
 use crate::types::chainstate::StacksBlockId;
@@ -321,7 +322,7 @@ impl DeserializeWithEpoch for StacksBlock {
         let header: StacksBlockHeader = read_next(fd)?;
         let txs: Vec<StacksTransaction> = {
             let mut bound_read = BoundReader::from_reader(fd, MAX_MESSAGE_LEN as u64);
-            read_next(&mut bound_read)
+            read_next_at_most_with_epoch(&mut bound_read, u32::MAX, epoch_id)
         }?;
 
         // there must be at least one transaction (the coinbase)
@@ -859,7 +860,8 @@ impl StacksMessageCodec for StacksMicroblock {
         let header: StacksMicroblockHeader = read_next(fd)?;
         let txs: Vec<StacksTransaction> = {
             let mut bound_read = BoundReader::from_reader(fd, MAX_MESSAGE_LEN as u64);
-            read_next(&mut bound_read)
+            // The latest epoch where StacksMicroblock exist is Epoch24
+            read_next_at_most_with_epoch(&mut bound_read, u32::MAX, StacksEpochId::Epoch24)
         }?;
 
         if txs.len() == 0 {
@@ -899,6 +901,71 @@ impl StacksMessageCodec for StacksMicroblock {
             warn!("Invalid microblock: found coinbase transaction");
             return Err(codec_error::DeserializeError(
                 "Invalid microblock: found coinbase transaction".to_string(),
+            ));
+        }
+
+        Ok(StacksMicroblock { header, txs })
+    }
+}
+
+// This implementation is used for testing purposes, StacksMicroblock won't be used in Epoch 3.0
+impl DeserializeWithEpoch for StacksMicroblock {
+    fn consensus_deserialize_with_epoch<R: Read>(
+        fd: &mut R,
+        epoch_id: StacksEpochId,
+    ) -> Result<StacksMicroblock, codec_error> {
+        // NOTE: maximum size must be checked elsewhere!
+        let header: StacksMicroblockHeader = read_next(fd)?;
+        let txs: Vec<StacksTransaction> = {
+            let mut bound_read = BoundReader::from_reader(fd, MAX_MESSAGE_LEN as u64);
+            // The latest epoch where StacksMicroblock exist is Epoch24
+            read_next_at_most_with_epoch(&mut bound_read, u32::MAX, StacksEpochId::latest())
+        }?;
+
+        if txs.len() == 0 {
+            warn!("Invalid microblock: zero transactions");
+            return Err(codec_error::DeserializeError(
+                "Invalid microblock: zero transactions".to_string(),
+            ));
+        }
+
+        if !StacksBlock::validate_transactions_unique(&txs) {
+            warn!("Invalid microblock: duplicate transaction");
+            return Err(codec_error::DeserializeError(
+                "Invalid microblock: duplicate transaction".to_string(),
+            ));
+        }
+
+        if !StacksBlock::validate_anchor_mode(&txs, false) {
+            warn!("Invalid microblock: found on-chain-only transaction");
+            return Err(codec_error::DeserializeError(
+                "Invalid microblock: found on-chain-only transaction".to_string(),
+            ));
+        }
+
+        // header and transactions must be consistent
+        let txid_vecs = txs.iter().map(|tx| tx.txid().as_bytes().to_vec()).collect();
+
+        let merkle_tree = MerkleTree::<Sha512Trunc256Sum>::new(&txid_vecs);
+        let tx_merkle_root = merkle_tree.root();
+
+        if tx_merkle_root != header.tx_merkle_root {
+            return Err(codec_error::DeserializeError(
+                "Invalid microblock: tx Merkle root mismatch".to_string(),
+            ));
+        }
+
+        if !StacksBlock::validate_coinbase(&txs, false) {
+            warn!("Invalid microblock: found coinbase transaction");
+            return Err(codec_error::DeserializeError(
+                "Invalid microblock: found coinbase transaction".to_string(),
+            ));
+        }
+
+        if !StacksBlock::validate_transactions_static_epoch(&txs, epoch_id, true) {
+            warn!("Invalid microblock: target epoch is not activated");
+            return Err(codec_error::DeserializeError(
+                "Invalid microblock: target epoch is not activated".to_string(),
             ));
         }
 
@@ -1258,7 +1325,11 @@ mod test {
                 txs: txs,
             };
 
-            check_codec_and_corruption::<StacksMicroblock>(&mblock, &block_bytes);
+            check_codec_and_corruption_with_epoch::<StacksMicroblock>(
+                &mblock,
+                &block_bytes,
+                StacksEpochId::latest(),
+            );
         }
     }
 

@@ -44,7 +44,7 @@ use crate::chainstate::stacks::db::{
 use crate::chainstate::stacks::Error as chain_error;
 use crate::chainstate::stacks::*;
 use crate::clarity_vm::clarity::ClarityConnection;
-use crate::codec::StacksMessageCodec;
+use crate::codec::{DeserializeWithEpoch, StacksMessageCodec};
 use crate::core::mempool::*;
 use crate::cost_estimates::metrics::CostMetric;
 use crate::cost_estimates::CostEstimator;
@@ -3636,6 +3636,7 @@ mod test {
     use crate::net::*;
     use clarity::vm::types::*;
     use stacks_common::address::*;
+    use stacks_common::types::StacksEpochId;
     use stacks_common::util::get_epoch_time_secs;
     use stacks_common::util::hash::hex_bytes;
     use stacks_common::util::pipe::*;
@@ -5078,8 +5079,9 @@ mod test {
                                 seq: 0
                             }
                         );
-                        let tx = StacksTransaction::consensus_deserialize(
+                        let tx = StacksTransaction::consensus_deserialize_with_epoch(
                             &mut &hex_bytes(&unconfirmed_resp.tx).unwrap()[..],
+                            StacksEpochId::latest(),
                         )
                         .unwrap();
                         assert_eq!(tx.txid(), *last_txid.borrow());

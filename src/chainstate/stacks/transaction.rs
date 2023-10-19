@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use stacks_common::types::StacksEpochId;
 use std::convert::TryFrom;
 use std::io;
 use std::io::prelude::*;
@@ -34,7 +35,9 @@ use stacks_common::util::retry::BoundReader;
 use stacks_common::util::secp256k1::MessageSignature;
 
 use crate::chainstate::stacks::StacksMicroblockHeader;
-use crate::codec::{read_next, write_next, Error as codec_error, StacksMessageCodec};
+use crate::codec::{
+    read_next, write_next, DeserializeWithEpoch, Error as codec_error, StacksMessageCodec,
+};
 use crate::types::chainstate::StacksAddress;
 use clarity::vm::ClarityVersion;
 
@@ -417,11 +420,12 @@ impl StacksMessageCodec for TransactionPostCondition {
                 let condition_u8: u8 = read_next(fd)?;
                 let amount: u64 = read_next(fd)?;
 
-                let condition_code = FungibleConditionCode::from_u8(condition_u8)
-                    .ok_or(codec_error::DeserializeError(format!(
+                let condition_code = FungibleConditionCode::from_u8(condition_u8).ok_or(
+                    codec_error::DeserializeError(format!(
                     "Failed to parse transaction: Failed to parse STX fungible condition code {}",
                     condition_u8
-                )))?;
+                )),
+                )?;
 
                 TransactionPostCondition::STX(principal, condition_code, amount)
             }
@@ -431,11 +435,12 @@ impl StacksMessageCodec for TransactionPostCondition {
                 let condition_u8: u8 = read_next(fd)?;
                 let amount: u64 = read_next(fd)?;
 
-                let condition_code = FungibleConditionCode::from_u8(condition_u8)
-                    .ok_or(codec_error::DeserializeError(format!(
+                let condition_code = FungibleConditionCode::from_u8(condition_u8).ok_or(
+                    codec_error::DeserializeError(format!(
                     "Failed to parse transaction: Failed to parse FungibleAsset condition code {}",
                     condition_u8
-                )))?;
+                )),
+                )?;
 
                 TransactionPostCondition::Fungible(principal, asset, condition_code, amount)
             }
@@ -472,6 +477,7 @@ impl StacksTransaction {
 
     pub fn consensus_deserialize_with_len<R: Read>(
         fd: &mut R,
+        epoch_id: StacksEpochId,
     ) -> Result<(StacksTransaction, u64), codec_error> {
         let mut bound_read = BoundReader::from_reader(fd, MAX_TRANSACTION_LEN.into());
         let fd = &mut bound_read;
@@ -547,19 +553,24 @@ impl StacksTransaction {
                 )));
             }
         };
+        let tx = StacksTransaction {
+            version,
+            chain_id,
+            auth,
+            anchor_mode,
+            post_condition_mode,
+            post_conditions,
+            payload,
+        };
 
-        Ok((
-            StacksTransaction {
-                version,
-                chain_id,
-                auth,
-                anchor_mode,
-                post_condition_mode,
-                post_conditions,
-                payload,
-            },
-            fd.num_read(),
-        ))
+        if !StacksBlock::validate_transactions_static_epoch(&vec![tx.clone()], epoch_id, true) {
+            warn!("Invalid tx: target epoch is not activated");
+            return Err(codec_error::DeserializeError(
+                "Failed to parse transaction: target epoch is not activated".to_string(),
+            ));
+        }
+
+        Ok((tx, fd.num_read()))
     }
 
     /// Try to convert to a coinbase payload
@@ -585,8 +596,17 @@ impl StacksMessageCodec for StacksTransaction {
         Ok(())
     }
 
-    fn consensus_deserialize<R: Read>(fd: &mut R) -> Result<StacksTransaction, codec_error> {
-        StacksTransaction::consensus_deserialize_with_len(fd).map(|(result, _)| result)
+    fn consensus_deserialize<R: Read>(_fd: &mut R) -> Result<StacksTransaction, codec_error> {
+        panic!("StacksTransaction should be deserialized with consensus_deserialize_with_epoch instead")
+    }
+}
+
+impl DeserializeWithEpoch for StacksTransaction {
+    fn consensus_deserialize_with_epoch<R: Read>(
+        fd: &mut R,
+        epoch_id: StacksEpochId,
+    ) -> Result<StacksTransaction, codec_error> {
+        StacksTransaction::consensus_deserialize_with_len(fd, epoch_id).map(|(result, _)| result)
     }
 }
 
@@ -1185,7 +1205,9 @@ mod test {
     use crate::chainstate::stacks::{
         C32_ADDRESS_VERSION_MAINNET_MULTISIG, C32_ADDRESS_VERSION_MAINNET_SINGLESIG,
     };
-    use crate::net::codec::test::check_codec_and_corruption;
+    use crate::net::codec::test::{
+        check_codec_and_corruption, check_codec_and_corruption_with_epoch,
+    };
     use crate::net::codec::*;
     use crate::net::*;
     use clarity::vm::representations::{ClarityName, ContractName};
@@ -1812,7 +1834,10 @@ mod test {
             // test_debug!("mutate byte {}", &i);
             let mut cursor = io::Cursor::new(&tx_bytes);
             let mut reader = LogReader::from_reader(&mut cursor);
-            match StacksTransaction::consensus_deserialize(&mut reader) {
+            match StacksTransaction::consensus_deserialize_with_epoch(
+                &mut reader,
+                StacksEpochId::latest(),
+            ) {
                 Ok(corrupt_tx) => {
                     let mut corrupt_tx_bytes = vec![];
                     corrupt_tx
@@ -3430,7 +3455,11 @@ mod test {
             test_debug!("---------");
             test_debug!("text tx bytes:\n{}", &to_hex(&tx_bytes));
 
-            check_codec_and_corruption::<StacksTransaction>(&tx, &tx_bytes);
+            check_codec_and_corruption_with_epoch::<StacksTransaction>(
+                &tx,
+                &tx_bytes,
+                StacksEpochId::latest(),
+            );
         }
     }
 
@@ -5832,7 +5861,17 @@ mod test {
         let origin_auth = TransactionAuth::Standard(
             TransactionSpendingCondition::new_multisig_order_independent_p2sh(
                 3,
-                vec![pubk_1.clone(), pubk_2.clone(), pubk_3.clone(), pubk_4.clone(), pubk_5.clone(), pubk_6.clone(), pubk_7.clone(), pubk_8.clone(), pubk_9.clone()],
+                vec![
+                    pubk_1.clone(),
+                    pubk_2.clone(),
+                    pubk_3.clone(),
+                    pubk_4.clone(),
+                    pubk_5.clone(),
+                    pubk_6.clone(),
+                    pubk_7.clone(),
+                    pubk_8.clone(),
+                    pubk_9.clone(),
+                ],
             )
             .unwrap(),
         );
@@ -6120,7 +6159,13 @@ mod test {
 
         let real_sponsor = TransactionSpendingCondition::new_multisig_order_independent_p2sh(
             5,
-            vec![pubk_1.clone(), pubk_2.clone(), pubk_3.clone(), pubk_4.clone(), pubk_5.clone()],
+            vec![
+                pubk_1.clone(),
+                pubk_2.clone(),
+                pubk_3.clone(),
+                pubk_4.clone(),
+                pubk_5.clone(),
+            ],
         )
         .unwrap();
 
@@ -6385,7 +6430,14 @@ mod test {
         let origin_auth = TransactionAuth::Standard(
             TransactionSpendingCondition::new_multisig_order_independent_p2wsh(
                 4,
-                vec![pubk_1.clone(), pubk_2.clone(), pubk_3.clone(), pubk_4.clone(), pubk_5.clone(), pubk_6.clone()],
+                vec![
+                    pubk_1.clone(),
+                    pubk_2.clone(),
+                    pubk_3.clone(),
+                    pubk_4.clone(),
+                    pubk_5.clone(),
+                    pubk_6.clone(),
+                ],
             )
             .unwrap(),
         );
@@ -6680,7 +6732,15 @@ mod test {
 
         let real_sponsor = TransactionSpendingCondition::new_multisig_order_independent_p2wsh(
             2,
-            vec![pubk_1.clone(), pubk_2.clone(), pubk_3.clone(), pubk_4.clone(), pubk_5.clone(), pubk_6.clone(), pubk_7.clone()],
+            vec![
+                pubk_1.clone(),
+                pubk_2.clone(),
+                pubk_3.clone(),
+                pubk_4.clone(),
+                pubk_5.clone(),
+                pubk_6.clone(),
+                pubk_7.clone(),
+            ],
         )
         .unwrap();
 

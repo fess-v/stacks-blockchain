@@ -193,8 +193,9 @@ fn main() {
 
         let mut cursor = io::Cursor::new(&tx_bytes);
         let mut debug_cursor = LogReader::from_reader(&mut cursor);
+        let epoch_id = parse_input_epoch(3);
 
-        let tx = StacksTransaction::consensus_deserialize(&mut debug_cursor)
+        let tx = StacksTransaction::consensus_deserialize_with_epoch(&mut debug_cursor, epoch_id)
             .map_err(|e| {
                 eprintln!("Failed to decode transaction: {:?}", &e);
                 eprintln!("Bytes consumed:");
@@ -1411,6 +1412,7 @@ simulating a miner.
     let events_file = &argv[3];
     let mine_tip_height: u64 = argv[4].parse().expect("Could not parse mine_tip_height");
     let mine_max_txns: u64 = argv[5].parse().expect("Could not parse mine-num-txns");
+    let epoch_id = parse_input_epoch(6);
 
     let sort_db = SortitionDB::open(&sort_db_path, false, PoxConstants::mainnet_default())
         .expect(&format!("Failed to open {}", &sort_db_path));
@@ -1490,7 +1492,9 @@ simulating a miner.
                     let raw_tx_hex = item.as_str().unwrap();
                     let raw_tx_bytes = hex_bytes(&raw_tx_hex[2..]).unwrap();
                     let mut cursor = io::Cursor::new(&raw_tx_bytes);
-                    let raw_tx = StacksTransaction::consensus_deserialize(&mut cursor).unwrap();
+                    let raw_tx =
+                        StacksTransaction::consensus_deserialize_with_epoch(&mut cursor, epoch_id)
+                            .unwrap();
                     if found_block_height {
                         if submit_tx_count >= mine_max_txns {
                             info!("Reached mine_max_txns {}", submit_tx_count);

@@ -84,8 +84,9 @@ use super::MemPoolDB;
 use rand::prelude::*;
 use rand::thread_rng;
 
-use stacks_common::codec::read_next;
 use stacks_common::codec::Error as codec_error;
+use stacks_common::codec::{read_next, read_next_with_epoch};
+use stacks_common::types::StacksEpochId;
 
 const FOO_CONTRACT: &'static str = "(define-public (foo) (ok 1))
                                     (define-public (bar (x uint)) (ok x))";
@@ -2545,23 +2546,24 @@ fn test_stream_txs() {
     let mut decoded_txs = vec![];
     let mut ptr = &buf[..];
     loop {
-        let tx: StacksTransaction = match read_next::<StacksTransaction, _>(&mut ptr) {
-            Ok(tx) => tx,
-            Err(e) => match e {
-                codec_error::ReadError(ref ioe) => match ioe.kind() {
-                    io::ErrorKind::UnexpectedEof => {
-                        eprintln!("out of transactions");
-                        break;
-                    }
+        let tx: StacksTransaction =
+            match read_next_with_epoch::<StacksTransaction, _>(&mut ptr, StacksEpochId::latest()) {
+                Ok(tx) => tx,
+                Err(e) => match e {
+                    codec_error::ReadError(ref ioe) => match ioe.kind() {
+                        io::ErrorKind::UnexpectedEof => {
+                            eprintln!("out of transactions");
+                            break;
+                        }
+                        _ => {
+                            panic!("IO error: {:?}", &e);
+                        }
+                    },
                     _ => {
-                        panic!("IO error: {:?}", &e);
+                        panic!("other error: {:?}", &e);
                     }
                 },
-                _ => {
-                    panic!("other error: {:?}", &e);
-                }
-            },
-        };
+            };
         decoded_txs.push(tx);
     }
 

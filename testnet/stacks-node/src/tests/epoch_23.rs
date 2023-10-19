@@ -20,6 +20,7 @@ use std::thread;
 use stacks::burnchains::Burnchain;
 use stacks::core::STACKS_EPOCH_MAX;
 use stacks::vm::types::QualifiedContractIdentifier;
+use stacks_common::codec::DeserializeWithEpoch;
 
 use crate::config::EventKeyType;
 use crate::config::EventObserverConfig;
@@ -514,8 +515,11 @@ fn trait_invocation_behavior() {
                 continue;
             }
             let tx_bytes = hex_bytes(&raw_tx[2..]).unwrap();
-            let parsed =
-                StacksTransaction::consensus_deserialize(&mut tx_bytes.as_slice()).unwrap();
+            let parsed = StacksTransaction::consensus_deserialize_with_epoch(
+                &mut tx_bytes.as_slice(),
+                StacksEpochId::Epoch23,
+            )
+            .unwrap();
             let tx_sender = PrincipalData::from(parsed.auth.origin().address_testnet());
             if &tx_sender == &spender_addr {
                 let contract_call = match &parsed.payload {

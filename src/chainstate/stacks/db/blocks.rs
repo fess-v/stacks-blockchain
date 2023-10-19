@@ -4085,10 +4085,6 @@ impl StacksChainState {
             );
             return Ok(None);
         }
-        warn!(
-            "Valid block, transactions failed static checks: {}/{} (epoch {})",
-            consensus_hash, block_hash, cur_epoch.epoch_id
-        );
 
         // NEW in 2.05
         // if the parent block marks an epoch transition, then its children necessarily run in a
