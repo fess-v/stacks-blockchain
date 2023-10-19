@@ -161,7 +161,7 @@ fn make_test_epochs_pox() -> (Vec<StacksEpoch>, PoxConstants) {
 ///        After the early unlock, Alice re-stacks in PoX v2
 /// Bob:   stacks via PoX v2 for 6 cycles. He attempted to stack via PoX v1 as well,
 ///        but is forbidden because he has already placed an account lock via PoX v2.
-///        
+///
 /// After the PoX-3 contract is instantiated, Alice and Bob both stack via PoX v3.
 ///
 #[test]

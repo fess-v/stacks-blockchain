@@ -77,8 +77,7 @@ use crate::clarity_vm::clarity::ClarityConnection;
 use crate::chainstate::stacks::events::StacksTransactionReceipt;
 use crate::chainstate::stacks::miner::TransactionEvent;
 use crate::chainstate::stacks::StacksBlock;
-use crate::codec::Error as codec_error;
-use crate::codec::StacksMessageCodec;
+use crate::codec::{DeserializeWithEpoch, Error as codec_error, StacksMessageCodec};
 use crate::cost_estimates;
 use crate::cost_estimates::metrics::CostMetric;
 use crate::cost_estimates::metrics::UnitMetric;
@@ -1739,7 +1738,7 @@ impl MemPoolDB {
         nonce: u64,
     ) -> Result<Option<MemPoolTxMetadata>, db_error> {
         let sql = format!(
-            "SELECT 
+            "SELECT
                           txid,
                           origin_address,
                           origin_nonce,

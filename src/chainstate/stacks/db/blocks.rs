@@ -53,7 +53,7 @@ use crate::chainstate::stacks::{
 use crate::clarity_vm::clarity::{ClarityBlockConnection, ClarityConnection, ClarityInstance};
 use crate::clarity_vm::database::SortitionDBRef;
 use crate::codec::MAX_MESSAGE_LEN;
-use crate::codec::{read_next, write_next};
+use crate::codec::{read_next, write_next, DeserializeWithEpoch};
 use crate::core::mempool::MemPoolDB;
 use crate::core::mempool::MAXIMUM_MEMPOOL_TX_CHAINING;
 use crate::core::*;
@@ -167,7 +167,6 @@ pub enum MemPoolRejection {
     EstimatorError(EstimatorError),
     TemporarilyBlacklisted,
     Other(String),
-    EpochNotActive,
 }
 
 pub struct SetupBlockResult<'a, 'b> {
@@ -314,7 +313,6 @@ impl MemPoolRejection {
             ),
             TemporarilyBlacklisted => ("TemporarilyBlacklisted", None),
             Other(s) => ("ServerFailureOther", Some(json!({ "message": s }))),
-            EpochNotActive => ("EpochNotActive", None),
         };
         let mut result = json!({
             "txid": format!("{}", txid.to_hex()),
@@ -895,6 +893,28 @@ impl StacksChainState {
         Ok(inst)
     }
 
+    pub fn consensus_load_with_epoch<T: DeserializeWithEpoch>(
+        path: &str,
+        epoch_id: StacksEpochId,
+    ) -> Result<T, Error> {
+        let mut fd = fs::OpenOptions::new()
+            .read(true)
+            .write(false)
+            .open(path)
+            .map_err(|e| {
+                if e.kind() == io::ErrorKind::NotFound {
+                    Error::DBError(db_error::NotFoundError)
+                } else {
+                    Error::DBError(db_error::IOError(e))
+                }
+            })?;
+
+        let mut bound_reader = BoundReader::from_reader(&mut fd, MAX_MESSAGE_LEN as u64);
+        let inst = T::consensus_deserialize_with_epoch(&mut bound_reader, epoch_id)
+            .map_err(Error::CodecError)?;
+        Ok(inst)
+    }
+
     /// Do we have a stored a block in the chunk store?
     /// Will be true even if it's invalid.
     pub fn has_block_indexed(
@@ -1167,7 +1187,8 @@ impl StacksChainState {
             return Ok(None);
         }
 
-        let block: StacksBlock = StacksChainState::consensus_load(&block_path)?;
+        let block: StacksBlock =
+            StacksChainState::consensus_load_with_epoch(&block_path, StacksEpochId::latest())?;
         Ok(Some(block))
     }
 
@@ -1372,7 +1393,10 @@ impl StacksChainState {
                     return Ok(None);
                 }
 
-                match StacksBlock::consensus_deserialize(&mut &staging_block.block_data[..]) {
+                match StacksBlock::consensus_deserialize_with_epoch(
+                    &mut &staging_block.block_data[..],
+                    StacksEpochId::latest(),
+                ) {
                     Ok(block) => Ok(Some(block)),
                     Err(e) => Err(Error::CodecError(e)),
                 }
@@ -4061,6 +4085,10 @@ impl StacksChainState {
             );
             return Ok(None);
         }
+        warn!(
+            "Valid block, transactions failed static checks: {}/{} (epoch {})",
+            consensus_hash, block_hash, cur_epoch.epoch_id
+        );
 
         // NEW in 2.05
         // if the parent block marks an epoch transition, then its children necessarily run in a
@@ -6558,10 +6586,16 @@ impl StacksChainState {
     }
 
     /// Extract and parse the block from a loaded staging block, and verify its integrity.
-    fn extract_stacks_block(next_staging_block: &StagingBlock) -> Result<StacksBlock, Error> {
+    fn extract_stacks_block(
+        next_staging_block: &StagingBlock,
+        epoch_id: StacksEpochId,
+    ) -> Result<StacksBlock, Error> {
         let block = {
-            StacksBlock::consensus_deserialize(&mut &next_staging_block.block_data[..])
-                .map_err(Error::CodecError)?
+            StacksBlock::consensus_deserialize_with_epoch(
+                &mut &next_staging_block.block_data[..],
+                epoch_id,
+            )
+            .map_err(Error::CodecError)?
         };
 
         let block_hash = block.block_hash();
@@ -6689,7 +6723,13 @@ impl StacksChainState {
             None => return Ok((None, None)),
         };
 
-        let block = StacksChainState::extract_stacks_block(&next_staging_block)?;
+        let epoch_id = SortitionDB::get_stacks_epoch(sort_tx, burn_header_height as u64)?
+            .expect(&format!(
+                "FATAL: no epoch defined at burn height {}",
+                burn_header_height
+            ))
+            .epoch_id;
+        let block = StacksChainState::extract_stacks_block(&next_staging_block, epoch_id)?;
         let block_size = next_staging_block.block_data.len() as u64;
 
         // sanity check -- don't process this block again if we already did so
@@ -7265,10 +7305,13 @@ impl StacksChainState {
         // 4: check if transaction is valid in the current epoch
         let epoch = clarity_connection.get_epoch().clone();
 
-        let is_transaction_valid_in_epoch = StacksBlock::validate_transactions_static_epoch(&vec![tx.clone()], epoch, true);
+        let is_transaction_valid_in_epoch =
+            StacksBlock::validate_transactions_static_epoch(&vec![tx.clone()], epoch, true);
 
         if !is_transaction_valid_in_epoch {
-            return Err(MemPoolRejection::EpochNotActive);
+            return Err(MemPoolRejection::Other(
+                "Transaction is not supported in this epoch".to_string(),
+            ));
         }
 
         // 5: the account nonces must be correct
@@ -10707,7 +10750,11 @@ pub mod test {
         }
 
         // should decode back into the block
-        let staging_block = StacksBlock::consensus_deserialize(&mut &all_block_bytes[..]).unwrap();
+        let staging_block = StacksBlock::consensus_deserialize_with_epoch(
+            &mut &all_block_bytes[..],
+            StacksEpochId::latest(),
+        )
+        .unwrap();
         assert_eq!(staging_block, block);
 
         // accept it
@@ -10733,7 +10780,11 @@ pub mod test {
         }
 
         // should decode back into the block
-        let staging_block = StacksBlock::consensus_deserialize(&mut &all_block_bytes[..]).unwrap();
+        let staging_block = StacksBlock::consensus_deserialize_with_epoch(
+            &mut &all_block_bytes[..],
+            StacksEpochId::latest(),
+        )
+        .unwrap();
         assert_eq!(staging_block, block);
     }
 

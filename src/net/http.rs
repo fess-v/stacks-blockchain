@@ -82,6 +82,7 @@ use clarity::vm::{
     types::{PrincipalData, BOUND_VALUE_SERIALIZATION_HEX},
     ClarityName, ContractName, Value,
 };
+use stacks_common::types::StacksEpochId;
 use stacks_common::util::hash::hex_bytes;
 use stacks_common::util::hash::to_hex;
 use stacks_common::util::hash::Hash160;
@@ -92,8 +93,8 @@ use stacks_common::util::retry::RetryReader;
 use crate::chainstate::stacks::StacksBlockHeader;
 use crate::chainstate::stacks::TransactionPayload;
 use crate::codec::{
-    read_next, write_next, Error as codec_error, StacksMessageCodec, MAX_MESSAGE_LEN,
-    MAX_PAYLOAD_LEN,
+    read_next, read_next_with_epoch, write_next, DeserializeWithEpoch, Error as codec_error,
+    StacksMessageCodec, MAX_MESSAGE_LEN, MAX_PAYLOAD_LEN,
 };
 use crate::types::chainstate::{BlockHeaderHash, StacksAddress, StacksBlockId};
 
@@ -2463,7 +2464,8 @@ impl HttpRequestType {
             })?;
 
         let mut bound_fd = BoundReader::from_reader(fd, preamble.get_content_length() as u64);
-        let stacks_block = StacksBlock::consensus_deserialize(&mut bound_fd)?;
+        let stacks_block =
+            StacksBlock::consensus_deserialize_with_epoch(&mut bound_fd, StacksEpochId::latest())?;
 
         Ok(HttpRequestType::PostBlock(
             HttpRequestMetadata::from_preamble(preamble),
@@ -3247,6 +3249,49 @@ impl HttpResponseType {
         Ok(item)
     }
 
+    fn parse_bytestream_with_epoch<R: Read, T: DeserializeWithEpoch>(
+        preamble: &HttpResponsePreamble,
+        fd: &mut R,
+        len_hint: Option<usize>,
+        max_len: u64,
+    ) -> Result<T, net_error> {
+        // content-type has to be Bytes
+        if preamble.content_type != HttpContentType::Bytes {
+            return Err(net_error::DeserializeError(
+                "Invalid content-type: expected application/octet-stream".to_string(),
+            ));
+        }
+
+        let item: T = if preamble.is_chunked() && len_hint.is_none() {
+            let mut chunked_fd = HttpChunkedTransferReader::from_reader(fd, max_len);
+            read_next_with_epoch(&mut chunked_fd, StacksEpochId::latest())?
+        } else {
+            let content_length_opt = match (preamble.content_length, len_hint) {
+                (Some(l), _) => Some(l as u32),
+                (None, Some(l)) => Some(l as u32),
+                (None, None) => None,
+            };
+            if let Some(content_length) = content_length_opt {
+                if (content_length as u64) > max_len {
+                    return Err(net_error::DeserializeError(
+                        "Invalid Content-Length header: too long".to_string(),
+                    ));
+                }
+
+                let mut bound_fd = BoundReader::from_reader(fd, content_length as u64);
+                read_next_with_epoch(&mut bound_fd, StacksEpochId::latest())?
+            } else {
+                // unsupported headers
+                trace!("preamble: {:?}", preamble);
+                return Err(net_error::DeserializeError(
+                    "Invalid headers: need either Transfer-Encoding or Content-Length".to_string(),
+                ));
+            }
+        };
+
+        Ok(item)
+    }
+
     fn parse_json<R: Read, T: serde::de::DeserializeOwned>(
         preamble: &HttpResponsePreamble,
         fd: &mut R,
@@ -3538,8 +3583,12 @@ impl HttpResponseType {
         fd: &mut R,
         len_hint: Option<usize>,
     ) -> Result<HttpResponseType, net_error> {
-        let block: StacksBlock =
-            HttpResponseType::parse_bytestream(preamble, fd, len_hint, MAX_MESSAGE_LEN as u64)?;
+        let block: StacksBlock = HttpResponseType::parse_bytestream_with_epoch(
+            preamble,
+            fd,
+            len_hint,
+            MAX_MESSAGE_LEN as u64,
+        )?;
         Ok(HttpResponseType::Block(
             HttpResponseMetadata::from_preamble(request_version, preamble),
             block,
@@ -5414,7 +5463,7 @@ mod test {
             ("POST asdf HTTP/1.1\r\nHost: core.blockstack.org\r\nConnection: close\r\nFoo: Bar\r\n\r\n",
              HttpRequestPreamble::from_headers(HttpVersion::Http11, "POST".to_string(), "asdf".to_string(), "core.blockstack.org".to_string(), 80, false, vec!["foo".to_string()], vec!["Bar".to_string()])),
             ("POST asdf HTTP/1.1\r\nHost: core.blockstack.org\r\nFoo: Bar\r\nConnection: close\r\n\r\n",
-             HttpRequestPreamble::from_headers(HttpVersion::Http11, "POST".to_string(), "asdf".to_string(), "core.blockstack.org".to_string(), 80, false, vec!["foo".to_string()], vec!["Bar".to_string()])) 
+             HttpRequestPreamble::from_headers(HttpVersion::Http11, "POST".to_string(), "asdf".to_string(), "core.blockstack.org".to_string(), 80, false, vec!["foo".to_string()], vec!["Bar".to_string()]))
         ];
 
         for (data, request) in tests.iter() {

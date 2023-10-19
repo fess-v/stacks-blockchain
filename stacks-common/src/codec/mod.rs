@@ -3,6 +3,7 @@ use std::{error, fmt, io, mem};
 
 // use crate::types::chainstate::MARFValue;
 use crate::types::chainstate::SortitionId;
+use crate::types::StacksEpochId;
 use crate::util::hash::HASH160_ENCODED_SIZE;
 use crate::util::secp256k1::MESSAGE_SIGNATURE_ENCODED_SIZE;
 
@@ -107,12 +108,29 @@ impl StacksMessageCodec for [u8; 32] {
     }
 }
 
+pub trait DeserializeWithEpoch {
+    fn consensus_deserialize_with_epoch<R: Read>(
+        fd: &mut R,
+        epoch_id: StacksEpochId,
+    ) -> Result<Self, Error>
+    where
+        Self: Sized;
+}
+
 pub fn write_next<T: StacksMessageCodec, W: Write>(fd: &mut W, item: &T) -> Result<(), Error> {
     item.consensus_serialize(fd)
 }
 
 pub fn read_next<T: StacksMessageCodec, R: Read>(fd: &mut R) -> Result<T, Error> {
     let item: T = T::consensus_deserialize(fd)?;
+    Ok(item)
+}
+
+pub fn read_next_with_epoch<T: DeserializeWithEpoch, R: Read>(
+    fd: &mut R,
+    epoch_id: StacksEpochId,
+) -> Result<T, Error> {
+    let item: T = T::consensus_deserialize_with_epoch(fd, epoch_id)?;
     Ok(item)
 }
 

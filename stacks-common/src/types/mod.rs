@@ -80,7 +80,7 @@ pub enum StacksEpochId {
 
 impl StacksEpochId {
     pub fn latest() -> StacksEpochId {
-        StacksEpochId::Epoch24
+        StacksEpochId::Epoch30
     }
 
     /// Returns whether or not this Epoch should perform

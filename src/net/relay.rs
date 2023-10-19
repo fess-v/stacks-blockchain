@@ -1277,7 +1277,7 @@ impl Relayer {
     /// Verify that a relayed microblock is not problematic -- i.e. it doesn't contain any
     /// problematic transactions. This is a static check -- we only look at the microblock
     /// contents.
-    ///  
+    ///
     /// Returns true if the check passed -- i.e. no problems.
     /// Returns false if not
     pub fn static_check_problematic_relayed_microblock(
@@ -5619,22 +5619,8 @@ pub mod test {
 
             let sortdb = peer.sortdb.take().unwrap();
             let mut node = peer.stacks_node.take().unwrap();
-            match Relayer::process_new_anchored_block(
-                &sortdb.index_conn(),
-                &mut node.chainstate,
-                &consensus_hash,
-                &stacks_block,
-                123,
-            ) {
-                Ok(x) => {
-                    eprintln!("{:?}", &stacks_block);
-                    panic!("Stored pay-to-contract stacks block before epoch 2.1");
-                }
-                Err(chainstate_error::InvalidStacksBlock(_)) => {}
-                Err(e) => {
-                    panic!("Got unexpected error {:?}", &e);
-                }
-            };
+            // transaction with versioned contract was filtered and no error in the block will appear
+            assert_eq!(stacks_block.txs.len(), 1);
             peer.sortdb = Some(sortdb);
             peer.stacks_node = Some(node);
         }
@@ -5646,6 +5632,8 @@ pub mod test {
 
         let sortdb = peer.sortdb.take().unwrap();
         let mut node = peer.stacks_node.take().unwrap();
+        // no filtered transactions in epoch 2.1, all valid
+        assert_eq!(stacks_block.txs.len(), 2);
         match Relayer::process_new_anchored_block(
             &sortdb.index_conn(),
             &mut node.chainstate,

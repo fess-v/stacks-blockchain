@@ -41,7 +41,9 @@ use stacks_common::util::vrf::*;
 
 use crate::chainstate::stacks::StacksBlockHeader;
 use crate::chainstate::stacks::StacksMicroblockHeader;
-use crate::codec::{read_next, write_next, Error as codec_error, StacksMessageCodec};
+use crate::codec::{
+    read_next, write_next, DeserializeWithEpoch, Error as codec_error, StacksMessageCodec,
+};
 use crate::types::chainstate::BurnchainHeaderHash;
 use crate::types::chainstate::StacksBlockId;
 use crate::types::chainstate::TrieHash;
@@ -304,7 +306,16 @@ impl StacksMessageCodec for StacksBlock {
         Ok(())
     }
 
-    fn consensus_deserialize<R: Read>(fd: &mut R) -> Result<StacksBlock, codec_error> {
+    fn consensus_deserialize<R: Read>(_fd: &mut R) -> Result<StacksBlock, codec_error> {
+        panic!("StacksBlock should be deserialized with consensus_deserialize_with_epoch instead")
+    }
+}
+
+impl DeserializeWithEpoch for StacksBlock {
+    fn consensus_deserialize_with_epoch<R: Read>(
+        fd: &mut R,
+        epoch_id: StacksEpochId,
+    ) -> Result<StacksBlock, codec_error> {
         // NOTE: don't worry about size clamps here; do that when receiving the data from the peer
         // network.  This code assumes that the block will be small enough.
         let header: StacksBlockHeader = read_next(fd)?;
@@ -372,6 +383,13 @@ impl StacksMessageCodec for StacksBlock {
             warn!("Invalid block: no coinbase found at first transaction slot");
             return Err(codec_error::DeserializeError(
                 "Invalid block: no coinbase found at first transaction slot".to_string(),
+            ));
+        }
+
+        if !StacksBlock::validate_transactions_static_epoch(&txs, epoch_id, true) {
+            warn!("Invalid block: target epoch is not activated");
+            return Err(codec_error::DeserializeError(
+                "Invalid block: target epoch is not activated".to_string(),
             ));
         }
 
@@ -569,7 +587,7 @@ impl StacksBlock {
     pub fn validate_transactions_static_epoch(
         txs: &[StacksTransaction],
         epoch_id: StacksEpochId,
-        quiet: bool
+        quiet: bool,
     ) -> bool {
         if epoch_id < StacksEpochId::Epoch21 {
             // nothing new since the start of the system is supported.
@@ -1154,7 +1172,11 @@ mod test {
             block_bytes.len(),
             block.txs.len()
         );
-        check_codec_and_corruption::<StacksBlock>(&block, &block_bytes);
+        check_codec_and_corruption_with_epoch::<StacksBlock>(
+            &block,
+            &block_bytes,
+            StacksEpochId::latest(),
+        );
     }
 
     #[test]
@@ -1580,11 +1602,14 @@ mod test {
         for (ref block, ref msg) in invalid_blocks.iter() {
             let mut bytes: Vec<u8> = vec![];
             block.consensus_serialize(&mut bytes).unwrap();
-            assert!(StacksBlock::consensus_deserialize(&mut &bytes[..])
-                .unwrap_err()
-                .to_string()
-                .find(msg)
-                .is_some());
+            assert!(StacksBlock::consensus_deserialize_with_epoch(
+                &mut &bytes[..],
+                StacksEpochId::latest()
+            )
+            .unwrap_err()
+            .to_string()
+            .find(msg)
+            .is_some());
         }
     }
 
@@ -1767,20 +1792,20 @@ mod test {
                 2,
                 vec![pubk_1.clone(), pubk_2.clone(), pubk_3.clone()],
             )
-                .unwrap();
+            .unwrap();
 
         let order_independent_multisig_condition_p2sh =
             TransactionSpendingCondition::new_multisig_order_independent_p2sh(
                 2,
                 vec![pubk_1.clone(), pubk_2.clone(), pubk_3.clone()],
             )
-                .unwrap();
+            .unwrap();
 
         let order_independent_sponsored_auth_p2sh = TransactionAuth::Sponsored(
             TransactionSpendingCondition::new_singlesig_p2pkh(StacksPublicKey::from_private(
                 &privk,
             ))
-                .unwrap(),
+            .unwrap(),
             order_independent_multisig_condition_p2sh.clone(),
         );
 
@@ -1788,7 +1813,7 @@ mod test {
             TransactionSpendingCondition::new_singlesig_p2pkh(StacksPublicKey::from_private(
                 &privk,
             ))
-                .unwrap(),
+            .unwrap(),
             order_independent_multisig_condition_p2wsh.clone(),
         );
         let order_independent_origin_auth_p2sh =

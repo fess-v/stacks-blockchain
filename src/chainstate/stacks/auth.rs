@@ -23,8 +23,8 @@ use crate::burnchains::PublicKey;
 use crate::burnchains::Txid;
 use crate::chainstate::stacks::Error;
 use crate::chainstate::stacks::MultisigHashMode;
-use crate::chainstate::stacks::OrderIndependentMultisigHashMode;
 use crate::chainstate::stacks::MultisigSpendingCondition;
+use crate::chainstate::stacks::OrderIndependentMultisigHashMode;
 use crate::chainstate::stacks::OrderIndependentMultisigSpendingCondition;
 use crate::chainstate::stacks::SinglesigHashMode;
 use crate::chainstate::stacks::SinglesigSpendingCondition;
@@ -396,7 +396,7 @@ impl OrderIndependentMultisigSpendingCondition {
                         self.tx_fee,
                         self.nonce,
                         pubkey_encoding,
-                        sigbuf
+                        sigbuf,
                     )?;
                     num_sigs = num_sigs
                         .checked_add(1)
@@ -908,7 +908,7 @@ impl TransactionSpendingCondition {
             TransactionSpendingCondition::Singlesig(_) => 1,
             TransactionSpendingCondition::Multisig(ref multisig_data) => {
                 multisig_data.signatures_required
-            },
+            }
             TransactionSpendingCondition::OrderIndependentMultisig(ref multisig_data) => {
                 multisig_data.signatures_required
             }
@@ -963,7 +963,9 @@ impl TransactionSpendingCondition {
         match *self {
             TransactionSpendingCondition::Singlesig(ref singlesig_data) => singlesig_data.tx_fee,
             TransactionSpendingCondition::Multisig(ref multisig_data) => multisig_data.tx_fee,
-            TransactionSpendingCondition::OrderIndependentMultisig(ref multisig_data) => multisig_data.tx_fee,
+            TransactionSpendingCondition::OrderIndependentMultisig(ref multisig_data) => {
+                multisig_data.tx_fee
+            }
         }
     }
 
@@ -972,7 +974,9 @@ impl TransactionSpendingCondition {
         match *self {
             TransactionSpendingCondition::Singlesig(ref data) => data.address_mainnet(),
             TransactionSpendingCondition::Multisig(ref data) => data.address_mainnet(),
-            TransactionSpendingCondition::OrderIndependentMultisig(ref data) => data.address_mainnet(),
+            TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
+                data.address_mainnet()
+            }
         }
     }
 
@@ -981,7 +985,9 @@ impl TransactionSpendingCondition {
         match *self {
             TransactionSpendingCondition::Singlesig(ref data) => data.address_testnet(),
             TransactionSpendingCondition::Multisig(ref data) => data.address_testnet(),
-            TransactionSpendingCondition::OrderIndependentMultisig(ref data) => data.address_testnet(),
+            TransactionSpendingCondition::OrderIndependentMultisig(ref data) => {
+                data.address_testnet()
+            }
         }
     }
 
@@ -1216,7 +1222,10 @@ impl TransactionAuth {
         }
     }
 
-    pub fn from_order_independent_p2sh(privks: &[StacksPrivateKey], num_sigs: u16) -> Option<TransactionAuth> {
+    pub fn from_order_independent_p2sh(
+        privks: &[StacksPrivateKey],
+        num_sigs: u16,
+    ) -> Option<TransactionAuth> {
         let mut pubks = vec![];
         for privk in privks.iter() {
             pubks.push(StacksPublicKey::from_private(privk));
@@ -1247,7 +1256,10 @@ impl TransactionAuth {
         }
     }
 
-    pub fn from_order_independent_p2wsh(privks: &[StacksPrivateKey], num_sigs: u16) -> Option<TransactionAuth> {
+    pub fn from_order_independent_p2wsh(
+        privks: &[StacksPrivateKey],
+        num_sigs: u16,
+    ) -> Option<TransactionAuth> {
         let mut pubks = vec![];
         for privk in privks.iter() {
             pubks.push(StacksPublicKey::from_private(privk));
@@ -1406,6 +1418,7 @@ impl TransactionAuth {
     }
 }
 
+#[rustfmt::skip]
 #[cfg(test)]
 mod test {
     use crate::chainstate::stacks::StacksPublicKey as PubKey;

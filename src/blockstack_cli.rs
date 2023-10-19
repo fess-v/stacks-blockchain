@@ -41,7 +41,7 @@ use blockstack_lib::chainstate::stacks::{
     C32_ADDRESS_VERSION_TESTNET_SINGLESIG,
 };
 use blockstack_lib::clarity_cli::vm_execute;
-use blockstack_lib::codec::{Error as CodecError, StacksMessageCodec};
+use blockstack_lib::codec::{DeserializeWithEpoch, Error as CodecError, StacksMessageCodec};
 use blockstack_lib::core::{CHAIN_ID_MAINNET, CHAIN_ID_TESTNET};
 use blockstack_lib::net::Error as NetError;
 use blockstack_lib::types::chainstate::StacksAddress;
@@ -55,6 +55,7 @@ use blockstack_lib::vm::{
     types::PrincipalData,
     ClarityName, ContractName, Value,
 };
+use stacks_common::types::StacksEpochId;
 
 const USAGE: &str = "blockstack-cli (options) [method] [args...]
 
@@ -172,7 +173,7 @@ The decode-microblock command decodes a serialized Stacks microblock and prints 
 The microblock, if given, must be a hex string.  Alternatively, you may pass `-` instead, and the
 raw binary microblock will be read from stdin.
 
-N.B. Stacks microblocks are not stored as files in the Stacks chainstate -- they are stored in 
+N.B. Stacks microblocks are not stored as files in the Stacks chainstate -- they are stored in
 block's sqlite database.";
 
 const DECODE_MICROBLOCKS_USAGE: &str = "blockstack-cli (options) decode-microblocks [microblocks-path-or-stdin]
@@ -181,7 +182,7 @@ The decode-microblocks command decodes a serialized list of Stacks microblocks a
 The microblocks, if given, must be a hex string.  Alternatively, you may pass `-` instead, and the
 raw binary microblocks will be read from stdin.
 
-N.B. Stacks microblocks are not stored as files in the Stacks chainstate -- they are stored in 
+N.B. Stacks microblocks are not stored as files in the Stacks chainstate -- they are stored in
 block's sqlite database.";
 
 #[derive(Debug)]
@@ -594,7 +595,7 @@ fn generate_secret_key(args: &[String], version: TransactionVersion) -> Result<S
     )
     .expect("Failed to generate address from public key");
     Ok(format!(
-        "{{ 
+        "{{
   \"secretKey\": \"{}\",
   \"publicKey\": \"{}\",
   \"stacksAddress\": \"{}\"
@@ -743,7 +744,8 @@ fn decode_block(args: &[String], _version: TransactionVersion) -> Result<String,
     let mut cursor = io::Cursor::new(&block_data);
     let mut debug_cursor = LogReader::from_reader(&mut cursor);
 
-    match StacksBlock::consensus_deserialize(&mut debug_cursor) {
+    match StacksBlock::consensus_deserialize_with_epoch(&mut debug_cursor, StacksEpochId::latest())
+    {
         Ok(block) => Ok(serde_json::to_string(&block).expect("Failed to serialize block to JSON")),
         Err(e) => {
             let mut ret = String::new();

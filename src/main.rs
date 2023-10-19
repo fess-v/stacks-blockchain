@@ -68,7 +68,7 @@ use blockstack_lib::clarity::vm::costs::ExecutionCost;
 use blockstack_lib::clarity::vm::types::StacksAddressExtensions;
 use blockstack_lib::clarity::vm::ClarityVersion;
 use blockstack_lib::clarity_cli::vm_execute;
-use blockstack_lib::codec::StacksMessageCodec;
+use blockstack_lib::codec::{DeserializeWithEpoch, StacksMessageCodec};
 use blockstack_lib::core::*;
 use blockstack_lib::cost_estimates::metrics::UnitMetric;
 use blockstack_lib::net::relay::Relayer;
@@ -220,13 +220,17 @@ fn main() {
 
         let block_path = &argv[2];
         let block_data = fs::read(block_path).expect(&format!("Failed to open {}", block_path));
+        let epoch_id = parse_input_epoch(3);
 
-        let block = StacksBlock::consensus_deserialize(&mut io::Cursor::new(&block_data))
-            .map_err(|_e| {
-                eprintln!("Failed to decode block");
-                process::exit(1);
-            })
-            .unwrap();
+        let block = StacksBlock::consensus_deserialize_with_epoch(
+            &mut io::Cursor::new(&block_data),
+            epoch_id,
+        )
+        .map_err(|_e| {
+            eprintln!("Failed to decode block");
+            process::exit(1);
+        })
+        .unwrap();
 
         println!("{:#?}", &block);
         process::exit(0);
@@ -261,13 +265,17 @@ fn main() {
         .unwrap()
         .expect("No such block");
 
-        let block =
-            StacksBlock::consensus_deserialize(&mut io::Cursor::new(&block_info.block_data))
-                .map_err(|_e| {
-                    eprintln!("Failed to decode block");
-                    process::exit(1);
-                })
-                .unwrap();
+        let epoch_id = parse_input_epoch(4);
+
+        let block = StacksBlock::consensus_deserialize_with_epoch(
+            &mut io::Cursor::new(&block_info.block_data),
+            epoch_id,
+        )
+        .map_err(|_e| {
+            eprintln!("Failed to decode block");
+            process::exit(1);
+        })
+        .unwrap();
 
         let microblocks =
             StacksChainState::find_parent_microblock_stream(chainstate.db(), &block_info)
@@ -345,6 +353,8 @@ fn main() {
         let mut tx_mined_heights = HashMap::new();
         let mut tx_mined_deltas: HashMap<u64, Vec<Txid>> = HashMap::new();
 
+        let epoch_id = parse_input_epoch(4);
+
         for _i in 0..num_blocks {
             let block_hash = StacksBlockHeader::make_index_block_hash(
                 &block_info.consensus_hash,
@@ -352,13 +362,15 @@ fn main() {
             );
             debug!("Consider block {} ({} of {})", &block_hash, _i, num_blocks);
 
-            let block =
-                StacksBlock::consensus_deserialize(&mut io::Cursor::new(&block_info.block_data))
-                    .map_err(|_e| {
-                        eprintln!("Failed to decode block {}", &block_hash);
-                        process::exit(1);
-                    })
-                    .unwrap();
+            let block = StacksBlock::consensus_deserialize_with_epoch(
+                &mut io::Cursor::new(&block_info.block_data),
+                epoch_id,
+            )
+            .map_err(|_e| {
+                eprintln!("Failed to decode block {}", &block_hash);
+                process::exit(1);
+            })
+            .unwrap();
 
             let microblocks =
                 StacksChainState::find_parent_microblock_stream(chainstate.db(), &block_info)
@@ -538,7 +550,7 @@ Given a <working-dir>, obtain a 2100 header hash block inventory (with an empty 
                 "Usage: {} can-download-microblock <working-dir>
 
 Given a <working-dir>, obtain a 2100 header hash inventory (with an empty header cache), and then
-check if the associated microblocks can be downloaded 
+check if the associated microblocks can be downloaded
 ",
                 argv[0]
             );
@@ -1587,4 +1599,24 @@ simulating a miner.
     }
 
     process::exit(0);
+}
+
+fn parse_input_epoch(epoch_arg_index: usize) -> StacksEpochId {
+    let argv: Vec<String> = env::args().collect();
+
+    let mut epoch_id = StacksEpochId::latest();
+
+    if argv.len() > epoch_arg_index {
+        let epoch_id_u32 = argv[epoch_arg_index]
+            .parse::<u32>()
+            .expect("Failed to parse epoch id");
+        epoch_id = StacksEpochId::try_from(epoch_id_u32)
+            .map_err(|_e| {
+                eprintln!("Failed to match epoch number");
+                process::exit(1);
+            })
+            .unwrap();
+    }
+
+    return epoch_id;
 }

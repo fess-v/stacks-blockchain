@@ -660,7 +660,7 @@ fn make_genesis_block_with_recipients(
         ),
         key_block_ptr: 1, // all registers happen in block height 1
         key_vtxindex: (1 + key_index) as u16,
-        memo: vec![STACKS_EPOCH_2_4_MARKER],
+        memo: vec![STACKS_EPOCH_3_0_MARKER],
         new_seed: VRFSeed::from_proof(&proof),
         commit_outs,
 
@@ -923,7 +923,7 @@ fn make_stacks_block_with_input(
         ),
         key_block_ptr: 1, // all registers happen in block height 1
         key_vtxindex: (1 + key_index) as u16,
-        memo: vec![STACKS_EPOCH_2_4_MARKER],
+        memo: vec![STACKS_EPOCH_3_0_MARKER],
         new_seed: VRFSeed::from_proof(&proof),
         commit_outs,
 
@@ -4322,7 +4322,7 @@ fn test_epoch_switch_pox_3_contract_instantiation() {
         &committers,
         pox_consts.clone(),
         None,
-        StacksEpochId::Epoch24,
+        StacksEpochId::Epoch30,
     );
 
     let mut coord = make_coordinator(path, Some(burnchain_conf));
@@ -4428,6 +4428,7 @@ fn test_epoch_switch_pox_3_contract_instantiation() {
 
         let stacks_tip = SortitionDB::get_canonical_stacks_chain_tip_hash(sort_db.conn()).unwrap();
         let burn_block_height = tip.block_height;
+        warn!("BLOCK HEIGHT {}", tip.block_height);
 
         // check that the expected stacks epoch ID is equal to the actual stacks epoch ID
         let expected_epoch = match burn_block_height {

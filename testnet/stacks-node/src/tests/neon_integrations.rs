@@ -21,7 +21,7 @@ use stacks::chainstate::burn::operations::{
 };
 use stacks::chainstate::coordinator::comm::CoordinatorChannels;
 use stacks::clarity_cli::vm_execute as execute;
-use stacks::codec::StacksMessageCodec;
+use stacks::codec::{DeserializeWithEpoch, StacksMessageCodec};
 use stacks::core;
 use stacks::core::{
     StacksEpoch, StacksEpochId, BLOCK_LIMIT_MAINNET_20, BLOCK_LIMIT_MAINNET_205,
@@ -631,9 +631,12 @@ pub fn submit_block(
             res.stacks_block_id,
             StacksBlockId::new(
                 consensus_hash,
-                &StacksBlock::consensus_deserialize(&mut &block[..])
-                    .unwrap()
-                    .block_hash()
+                &StacksBlock::consensus_deserialize_with_epoch(
+                    &mut &block[..],
+                    StacksEpochId::latest()
+                )
+                .unwrap()
+                .block_hash()
             )
         );
         return res;
@@ -676,7 +679,9 @@ pub fn get_block(http_origin: &str, block_id: &StacksBlockId) -> Option<StacksBl
 
     if res.status().is_success() {
         let res: Vec<u8> = res.bytes().unwrap().to_vec();
-        let block = StacksBlock::consensus_deserialize(&mut &res[..]).unwrap();
+        let block =
+            StacksBlock::consensus_deserialize_with_epoch(&mut &res[..], StacksEpochId::latest())
+                .unwrap();
         Some(block)
     } else {
         None
@@ -730,7 +735,11 @@ fn get_tip_anchored_block(conf: &Config) -> (ConsensusHash, StacksBlock) {
     let client = reqwest::blocking::Client::new();
     let path = format!("{}/v2/blocks/{}", &http_origin, &stacks_id_tip);
     let block_bytes = client.get(&path).send().unwrap().bytes().unwrap();
-    let block = StacksBlock::consensus_deserialize(&mut block_bytes.as_ref()).unwrap();
+    let block = StacksBlock::consensus_deserialize_with_epoch(
+        &mut block_bytes.as_ref(),
+        StacksEpochId::latest(),
+    )
+    .unwrap();
 
     (stacks_tip_consensus_hash, block)
 }
@@ -4094,7 +4103,7 @@ fn runtime_overflow_unconfirmed_microblocks_integration_test() {
                     &format!("large-{}", ix),
                     &format!("
                         ;; a single one of these transactions consumes over half the runtime budget
-                        (define-constant BUFF_TO_BYTE (list 
+                        (define-constant BUFF_TO_BYTE (list
                            0x00 0x01 0x02 0x03 0x04 0x05 0x06 0x07 0x08 0x09 0x0a 0x0b 0x0c 0x0d 0x0e 0x0f
                            0x10 0x11 0x12 0x13 0x14 0x15 0x16 0x17 0x18 0x19 0x1a 0x1b 0x1c 0x1d 0x1e 0x1f
                            0x20 0x21 0x22 0x23 0x24 0x25 0x26 0x27 0x28 0x29 0x2a 0x2b 0x2c 0x2d 0x2e 0x2f
@@ -4148,7 +4157,7 @@ fn runtime_overflow_unconfirmed_microblocks_integration_test() {
                         &format!("small-{}-{}", ix, i),
                         &format!("
                             ;; a single one of these transactions consumes over half the runtime budget
-                            (define-constant BUFF_TO_BYTE (list 
+                            (define-constant BUFF_TO_BYTE (list
                                0x00 0x01 0x02 0x03 0x04 0x05 0x06 0x07 0x08 0x09 0x0a 0x0b 0x0c 0x0d 0x0e 0x0f
                                0x10 0x11 0x12 0x13 0x14 0x15 0x16 0x17 0x18 0x19 0x1a 0x1b 0x1c 0x1d 0x1e 0x1f
                                0x20 0x21 0x22 0x23 0x24 0x25 0x26 0x27 0x28 0x29 0x2a 0x2b 0x2c 0x2d 0x2e 0x2f
@@ -5008,7 +5017,7 @@ fn block_limit_hit_integration_test() {
 
     // 700 invocations
     let max_contract_src = format!(
-         "(define-private (work) (begin {} 1)) 
+         "(define-private (work) (begin {} 1))
          (define-private (times-100) (begin {} 1))
          (define-private (times-200) (begin (times-100) (times-100) 1))
          (define-private (times-500) (begin (times-200) (times-200) (times-100) 1))
@@ -5030,7 +5039,7 @@ fn block_limit_hit_integration_test() {
 
     // 2900 invocations
     let oversize_contract_src = format!(
-        "(define-private (work) (begin {} 1)) 
+        "(define-private (work) (begin {} 1))
          (define-private (times-100) (begin {} 1))
          (define-private (times-200) (begin (times-100) (times-100) 1))
          (define-private (times-500) (begin (times-200) (times-200) (times-100) 1))
@@ -5198,7 +5207,7 @@ fn microblock_limit_hit_integration_test() {
     }
 
     let max_contract_src = format!(
-        "(define-private (work) (begin {} 1)) 
+        "(define-private (work) (begin {} 1))
          (define-private (times-100) (begin {} 1))
          (define-private (times-200) (begin (times-100) (times-100) 1))
          (define-private (times-500) (begin (times-200) (times-200) (times-100) 1))
@@ -5219,7 +5228,7 @@ fn microblock_limit_hit_integration_test() {
     );
 
     let oversize_contract_src = format!(
-        "(define-private (work) (begin {} 1)) 
+        "(define-private (work) (begin {} 1))
          (define-private (times-100) (begin {} 1))
          (define-private (times-200) (begin (times-100) (times-100) 1))
          (define-private (times-500) (begin (times-200) (times-200) (times-100) 1))
@@ -10220,7 +10229,7 @@ fn make_runtime_sized_contract(num_index_of: usize, nonce: u64, addr_prefix: &st
 
     let code = format!(
         "
-        (define-constant BUFF_TO_BYTE (list 
+        (define-constant BUFF_TO_BYTE (list
            0x00 0x01 0x02 0x03 0x04 0x05 0x06 0x07 0x08 0x09 0x0a 0x0b 0x0c 0x0d 0x0e 0x0f
            0x10 0x11 0x12 0x13 0x14 0x15 0x16 0x17 0x18 0x19 0x1a 0x1b 0x1c 0x1d 0x1e 0x1f
            0x20 0x21 0x22 0x23 0x24 0x25 0x26 0x27 0x28 0x29 0x2a 0x2b 0x2c 0x2d 0x2e 0x2f
