@@ -387,13 +387,6 @@ impl DeserializeWithEpoch for StacksBlock {
             ));
         }
 
-        if !StacksBlock::validate_transactions_static_epoch(&txs, epoch_id, true) {
-            warn!("Invalid block: target epoch is not activated");
-            return Err(codec_error::DeserializeError(
-                "Invalid block: target epoch is not activated".to_string(),
-            ));
-        }
-
         Ok(StacksBlock { header, txs })
     }
 }
@@ -1808,6 +1801,108 @@ mod test {
         }
     }
 
+    fn verify_block_epoch_validation(
+        txs: &[StacksTransaction],
+        tx_coinbase: StacksTransaction,
+        activation_epoch_id: StacksEpochId,
+        header: StacksBlockHeader,
+        need_to_include_coinbase: bool,
+    ) {
+        let epoch_list = [
+            StacksEpochId::Epoch10,
+            StacksEpochId::Epoch20,
+            StacksEpochId::Epoch2_05,
+            StacksEpochId::Epoch21,
+            StacksEpochId::Epoch22,
+            StacksEpochId::Epoch23,
+            StacksEpochId::Epoch24,
+            StacksEpochId::Epoch30,
+        ];
+        let get_tx_root = |txs: &Vec<StacksTransaction>| {
+            let txid_vecs = txs.iter().map(|tx| tx.txid().as_bytes().to_vec()).collect();
+
+            let merkle_tree = MerkleTree::<Sha512Trunc256Sum>::new(&txid_vecs);
+            let tx_merkle_root = merkle_tree.root();
+            tx_merkle_root
+        };
+        let mut block_header_dup_tx = header.clone();
+        block_header_dup_tx.tx_merkle_root = get_tx_root(&txs.to_vec());
+
+        let block = StacksBlock {
+            header: block_header_dup_tx.clone(),
+            txs: txs.to_vec(),
+        };
+
+        let mut txs_with_coinbase = txs.to_vec();
+        txs_with_coinbase.insert(0, tx_coinbase);
+
+        let mut block_header_dup_tx_with_coinbase = header.clone();
+        block_header_dup_tx_with_coinbase.tx_merkle_root = get_tx_root(&txs_with_coinbase.to_vec());
+
+        let block_with_coinbase_tx = StacksBlock {
+            header: block_header_dup_tx_with_coinbase.clone(),
+            txs: txs_with_coinbase,
+        };
+
+        for epoch_id in epoch_list.iter() {
+            let block_to_check = if *epoch_id < StacksEpochId::Epoch21 || !need_to_include_coinbase
+            {
+                block.clone()
+            } else {
+                block_with_coinbase_tx.clone()
+            };
+
+            let mut bytes: Vec<u8> = vec![];
+            block_to_check.consensus_serialize(&mut bytes).unwrap();
+
+            if *epoch_id < activation_epoch_id {
+                assert!(!StacksBlock::validate_transactions_static_epoch(
+                    &txs,
+                    epoch_id.clone(),
+                    false,
+                ));
+
+                for tx in txs.iter() {
+                    let mut bytes: Vec<u8> = vec![];
+                    tx.consensus_serialize(&mut bytes).unwrap();
+
+                    assert!(StacksTransaction::consensus_deserialize_with_epoch(
+                        &mut &bytes[..],
+                        *epoch_id
+                    )
+                    .unwrap_err()
+                    .to_string()
+                    .find("target epoch is not activated")
+                    .is_some());
+                }
+
+                assert!(
+                    StacksBlock::consensus_deserialize_with_epoch(&mut &bytes[..], *epoch_id)
+                        .unwrap_err()
+                        .to_string()
+                        .find("target epoch is not activated")
+                        .is_some()
+                );
+            } else {
+                assert!(StacksBlock::validate_transactions_static_epoch(
+                    &txs,
+                    StacksEpochId::Epoch30,
+                    false,
+                ));
+
+                for tx in txs.iter() {
+                    let mut bytes: Vec<u8> = vec![];
+                    tx.consensus_serialize(&mut bytes).unwrap();
+
+                    StacksTransaction::consensus_deserialize_with_epoch(&mut &bytes[..], *epoch_id)
+                        .unwrap();
+                }
+
+                StacksBlock::consensus_deserialize_with_epoch(&mut &bytes[..], *epoch_id).unwrap();
+            }
+        }
+    }
+
     #[test]
     fn test_block_validate_transactions_static() {
         let header = StacksBlockHeader {
@@ -1933,6 +2028,42 @@ mod test {
             ),
         );
 
+        let mut tx_signer =
+            StacksTransactionSigner::new(&order_independent_multisig_tx_transfer_mainnet_p2sh);
+        tx_signer.sign_origin(&privk_1).unwrap();
+        tx_signer.sign_origin(&privk_2).unwrap();
+        tx_signer.append_origin(&pubk_3).unwrap();
+        let order_independent_multisig_tx_transfer_mainnet_p2sh_signed =
+            tx_signer.get_tx().unwrap();
+
+        let mut tx_signer =
+            StacksTransactionSigner::new(&order_independent_multisig_tx_transfer_mainnet_p2wsh);
+        tx_signer.sign_origin(&privk_1).unwrap();
+        tx_signer.sign_origin(&privk_2).unwrap();
+        tx_signer.append_origin(&pubk_3).unwrap();
+        let order_independent_multisig_tx_transfer_mainnet_p2wsh_signed =
+            tx_signer.get_tx().unwrap();
+
+        let mut tx_signer = StacksTransactionSigner::new(
+            &order_independent_sponsored_multisig_tx_transfer_mainnet_p2sh,
+        );
+        tx_signer.sign_origin(&privk).unwrap();
+        tx_signer.sign_sponsor(&privk_1).unwrap();
+        tx_signer.sign_sponsor(&privk_2).unwrap();
+        tx_signer.append_sponsor(&pubk_3).unwrap();
+        let order_independent_sponsored_multisig_tx_transfer_mainnet_p2sh_signed =
+            tx_signer.get_tx().unwrap();
+
+        let mut tx_signer = StacksTransactionSigner::new(
+            &order_independent_sponsored_multisig_tx_transfer_mainnet_p2wsh,
+        );
+        tx_signer.sign_origin(&privk).unwrap();
+        tx_signer.sign_sponsor(&privk_1).unwrap();
+        tx_signer.sign_sponsor(&privk_2).unwrap();
+        tx_signer.append_sponsor(&pubk_3).unwrap();
+        let order_independent_sponsored_multisig_tx_transfer_mainnet_p2wsh_signed =
+            tx_signer.get_tx().unwrap();
+
         let tx_coinbase = StacksTransaction::new(
             TransactionVersion::Testnet,
             origin_auth.clone(),
@@ -2013,10 +2144,10 @@ mod test {
         let coinbase_contract = vec![tx_coinbase_contract.clone()];
         let versioned_contract = vec![tx_versioned_smart_contract.clone()];
         let order_independent_multisig_txs = vec![
-            order_independent_multisig_tx_transfer_mainnet_p2sh.clone(),
-            order_independent_sponsored_multisig_tx_transfer_mainnet_p2sh.clone(),
-            order_independent_multisig_tx_transfer_mainnet_p2wsh.clone(),
-            order_independent_sponsored_multisig_tx_transfer_mainnet_p2wsh.clone(),
+            order_independent_multisig_tx_transfer_mainnet_p2sh_signed.clone(),
+            order_independent_sponsored_multisig_tx_transfer_mainnet_p2sh_signed.clone(),
+            order_independent_multisig_tx_transfer_mainnet_p2wsh_signed.clone(),
+            order_independent_sponsored_multisig_tx_transfer_mainnet_p2wsh_signed.clone(),
         ];
 
         assert!(!StacksBlock::validate_transactions_unique(&dup_txs));
@@ -2030,38 +2161,28 @@ mod test {
         ));
         assert!(!StacksBlock::validate_anchor_mode(&offchain_txs, true));
         assert!(!StacksBlock::validate_coinbase(&no_coinbase, true));
-        assert!(!StacksBlock::validate_transactions_static_epoch(
-            &coinbase_contract,
-            StacksEpochId::Epoch2_05,
-            false,
-        ));
 
-        assert!(StacksBlock::validate_transactions_static_epoch(
+        verify_block_epoch_validation(
+            &versioned_contract,
+            tx_coinbase.clone(),
+            StacksEpochId::Epoch21,
+            header.clone(),
+            true,
+        );
+        verify_block_epoch_validation(
             &coinbase_contract,
+            tx_coinbase.clone(),
             StacksEpochId::Epoch21,
+            header.clone(),
             false,
-        ));
-
-        assert!(!StacksBlock::validate_transactions_static_epoch(
-            &versioned_contract,
-            StacksEpochId::Epoch2_05,
-            false,
-        ));
-        assert!(StacksBlock::validate_transactions_static_epoch(
-            &versioned_contract,
-            StacksEpochId::Epoch21,
-            false,
-        ));
-        assert!(StacksBlock::validate_transactions_static_epoch(
+        );
+        verify_block_epoch_validation(
             &order_independent_multisig_txs,
+            tx_coinbase.clone(),
             StacksEpochId::Epoch30,
-            false,
-        ));
-        assert!(!StacksBlock::validate_transactions_static_epoch(
-            &order_independent_multisig_txs,
-            StacksEpochId::Epoch24,
-            false,
-        ));
+            header.clone(),
+            true,
+        );
     }
 
     // TODO:
